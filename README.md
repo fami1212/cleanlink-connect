@@ -1,73 +1,95 @@
-# Welcome to your Lovable project
+CleanLink Connect - Solution de Gestion de Nettoyage
+Dépôt GitHub : https://github.com/fami1212/cleanlink-connect.git
 
-## Project info
+🚀 À propos du projet
+CleanLink Connect est une application web moderne de gestion de services de nettoyage qui connecte les clients avec des prestataires de confiance. La plateforme offre une expérience fluide pour la réservation, le suivi et la gestion des services de nettoyage.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+✨ Fonctionnalités principales
+Réservation en ligne : Interface intuitive pour planifier des services de nettoyage
 
-## How can I edit this code?
+Suivi en temps réel : Visualisation du statut des prestations
 
-There are several ways of editing your application.
+Gestion des commandes : Dashboard complet pour les clients et prestataires
 
-**Use Lovable**
+Système de notation : Évaluation et retours sur les services
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Paiement sécurisé : Intégration de solutions de paiement modernes
 
-Changes made via Lovable will be committed automatically to this repo.
+🛠️ Stack Technique
+Ce projet utilise les technologies suivantes :
 
-**Use your preferred IDE**
+⚡ Vite - Build tool ultra-rapide
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+📘 TypeScript - Typage statique pour une meilleure robustesse
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+⚛️ React 18 - Bibliothèque UI moderne
 
-Follow these steps:
+🎨 shadcn/ui - Composants UI accessibles et personnalisables
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+🌪️ Tailwind CSS - Framework CSS utilitaire-first
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+📱 React Router - Navigation côté client
 
-# Step 3: Install the necessary dependencies.
-npm i
+🔐 Authentication - Système de sécurité des utilisateurs
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+🚀 Démarrage rapide
+Prérequis
+Node.js 18+ et npm
+
+Installation locale
+
+
+# 1. Cloner le dépôt
+git clone https://github.com/fami1212/cleanlink-connect.git
+
+# 2. Accéder au répertoire du projet
+cd cleanlink-connect
+
+# 3. Installer les dépendances
+npm install
+
+# 4. Lancer l'environnement de développement
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+# 5. Ouvrir l'application sur http://localhost:5173
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Commandes disponibles
+npm run dev          # Démarre le serveur de développement
+npm run build        # Compile pour la production
+npm run preview      # Prévisualise la version de production
+npm run lint         # Vérifie le code avec ESLint
 
-**Use GitHub Codespaces**
+🔧 Méthodes de développement
+1. Via votre IDE préféré (recommandé)
+Clonez le repo et travaillez localement avec VS Code, WebStorm, etc.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+2. Édition directe sur GitHub
+Naviguez vers le fichier à modifier
 
-## What technologies are used for this project?
+Cliquez sur l'icône crayon (✏️)
 
-This project is built with:
+Commitez vos changements
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+3. Via GitHub Codespaces
+Cliquez sur le bouton "Code" vert > onglet "Codespaces"
 
-## How can I deploy this project?
+Créez un nouveau codespace
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Travaillez directement dans le navigateur
 
-## Can I connect a custom domain to my Lovable project?
+🌐 Déploiement
+Options de déploiement
+Vercel (recommandé pour React)
 
-Yes, you can!
+📄 Licence
+Ce projet est privé et appartient à CleanLink Connect.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+📞 Support
+Pour toute question ou problème :
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Créez une issue sur GitHub
+
+Contactez l'équipe de développement
+
+Développé avec ❤️ pour CleanLink Connect
+Connectez, nettoyez, répétez.
