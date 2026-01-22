@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import logo from "@/assets/linkeco-logo.png";
+import { Navigate } from "react-router-dom";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,10 +35,14 @@ const Header = () => {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="soft" size="sm">
+          <Button onClick={() => window.location.href = "/app/onboarding"} variant="soft" size="sm">
             Je suis prestataire
           </Button>
-          <Button variant="gradient" size="sm">
+          <Button
+            onClick={() => window.location.href = "/app/onboarding"}
+            variant="gradient"
+            size="sm"
+          >
             Commander maintenant
           </Button>
         </div>

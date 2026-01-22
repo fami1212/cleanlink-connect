@@ -57,10 +57,10 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-fade-in" style={{ animationDelay: "0.4s" }}>
-            <Button variant="hero" size="xl">
+            <Button  onClick={() => window.location.href = "/app/onboarding"} variant="hero" size="xl">
               Commander une vidange
             </Button>
-            <Button variant="heroOutline" size="xl">
+            <Button onClick={() => window.location.href = "/app/onboarding"} variant="heroOutline" size="xl">
               Devenir prestataire
             </Button>
           </div>
