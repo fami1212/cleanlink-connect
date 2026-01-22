@@ -1,12 +1,23 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, Bell, Search } from "lucide-react";
 import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
+import { useAuth } from "@/hooks/useAuth";
+import { useOrders } from "@/hooks/useOrders";
 import logo from "@/assets/linkeco-logo.png";
 import heroImage from "@/assets/hero-dakar.jpg";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { currentOrder } = useOrders();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/app/auth");
+    }
+  }, [user, loading, navigate]);
 
   const services = [
     {
@@ -35,6 +46,26 @@ const Home = () => {
     },
   ];
 
+  // Get user's name
+  const displayName = user?.user_metadata?.full_name?.split(" ")[0] || 
+    user?.email?.split("@")[0] || 
+    "Ami";
+  
+  const initials = (user?.user_metadata?.full_name || user?.email || "U")
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30 pb-20">
       {/* Header */}
@@ -49,22 +80,46 @@ const Home = () => {
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </button>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-sm font-bold text-primary-foreground">IB</span>
-            </div>
+            <button 
+              onClick={() => navigate("/app/profile")}
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+            >
+              <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+            </button>
           </div>
         </div>
 
         {/* Greeting */}
         <div className="px-4 pb-4">
           <h1 className="font-display text-xl font-bold text-foreground">
-            Bonjour, Ibohima 👋
+            Bonjour, {displayName} 👋
           </h1>
           <p className="text-sm text-muted-foreground">
             Besoin d'un service de vidange ?
           </p>
         </div>
       </div>
+
+      {/* Active order banner */}
+      {currentOrder && currentOrder.status !== "completed" && currentOrder.status !== "cancelled" && (
+        <div className="px-4 py-3">
+          <button
+            onClick={() => navigate("/app/tracking", { state: { orderId: currentOrder.id } })}
+            className="w-full bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center gap-3"
+          >
+            <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
+              <span className="text-lg">🚛</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-semibold text-foreground">Commande en cours</p>
+              <p className="text-sm text-muted-foreground capitalize">
+                {currentOrder.status.replace("_", " ")}
+              </p>
+            </div>
+            <span className="text-accent font-medium">Voir →</span>
+          </button>
+        </div>
+      )}
 
       {/* Hero banner */}
       <div className="px-4 py-4">
@@ -99,7 +154,7 @@ const Home = () => {
           Nos services
         </h2>
         <div className="space-y-3">
-          {services.map((service, index) => (
+          {services.map((service) => (
             <ServiceCard
               key={service.title}
               icon={service.icon}

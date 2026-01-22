@@ -1,16 +1,34 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, MapPin, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Map from "@/components/app/Map";
+import { useAuth } from "@/hooks/useAuth";
+import { useOrders } from "@/hooks/useOrders";
+import { toast } from "sonner";
+import { ServiceType } from "@/types/database";
+
+const serviceTypeMap: Record<string, ServiceType> = {
+  "Vidange fosse septique": "fosse_septique",
+  "Vidange latrines": "latrines",
+  "Urgence débordement": "urgence",
+  "Curage canalisations": "curage",
+};
 
 const Order = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const { createOrder } = useOrders();
+  
   const initialService = location.state?.service || "Vidange fosse septique";
   
   const [selectedService, setSelectedService] = useState(initialService);
   const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [showServiceSelect, setShowServiceSelect] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const services = [
     "Vidange fosse septique",
@@ -27,6 +45,47 @@ const Order = () => {
   };
 
   const currentPrice = priceRange[selectedService as keyof typeof priceRange] || { min: 25000, max: 30000 };
+
+  const handleLocationSelect = (lat: number, lng: number, addr: string) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    setAddress(addr.split(",").slice(0, 3).join(","));
+  };
+
+  const handleSubmit = async () => {
+    if (!user) {
+      toast.error("Veuillez vous connecter");
+      navigate("/app/auth");
+      return;
+    }
+
+    if (!address || !latitude || !longitude) {
+      toast.error("Veuillez sélectionner une adresse sur la carte");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const { data, error } = await createOrder({
+      service_type: serviceTypeMap[selectedService],
+      address,
+      latitude,
+      longitude,
+      price_min: currentPrice.min,
+      price_max: currentPrice.max,
+    });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      toast.error("Erreur lors de la création de la commande");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Commande créée!");
+    navigate("/app/payment", { state: { orderId: data?.id, price: currentPrice } });
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -45,32 +104,27 @@ const Order = () => {
         </div>
       </div>
 
-      {/* Map placeholder */}
-      <div className="relative h-48 bg-muted">
-        <div className="absolute inset-0 bg-gradient-to-b from-secondary/20 to-accent/20 flex items-center justify-center">
-          <div className="text-center">
-            <MapPin className="w-10 h-10 text-primary mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Carte interactive</p>
-          </div>
-        </div>
-        
-        {/* Location input overlay */}
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="bg-card rounded-xl shadow-lg p-3 flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-primary shrink-0" />
-            <input
-              type="text"
-              placeholder="Entrez votre adresse..."
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-            />
-          </div>
-        </div>
+      {/* Interactive Map */}
+      <div className="relative">
+        <Map
+          onLocationSelect={handleLocationSelect}
+          initialLat={14.6937}
+          initialLng={-17.4441}
+          className="h-56"
+          interactive={true}
+        />
       </div>
 
       {/* Content */}
       <div className="flex-1 p-4 space-y-4">
+        {/* Address display */}
+        <div className="bg-card border border-border rounded-xl p-3">
+          <p className="text-sm text-muted-foreground mb-1">Adresse sélectionnée</p>
+          <p className="font-medium text-foreground">
+            {address || "Cliquez sur la carte ou utilisez la géolocalisation"}
+          </p>
+        </div>
+
         {/* Service selector */}
         <div>
           <label className="text-sm font-medium text-foreground mb-2 block">
@@ -121,17 +175,6 @@ const Order = () => {
             <span className="text-sm text-muted-foreground">FCFA</span>
           </div>
         </div>
-
-        {/* Location info */}
-        <div className="flex items-center gap-3 p-4 bg-card border border-border rounded-xl">
-          <MapPin className="w-5 h-5 text-accent" />
-          <div className="flex-1">
-            <p className="font-medium text-foreground">
-              {address || "Sélectionnez une adresse"}
-            </p>
-            <p className="text-sm text-muted-foreground">Dakar, Sénégal</p>
-          </div>
-        </div>
       </div>
 
       {/* Bottom CTA */}
@@ -140,9 +183,10 @@ const Order = () => {
           variant="hero"
           size="xl"
           className="w-full"
-          onClick={() => navigate("/app/payment")}
+          onClick={handleSubmit}
+          disabled={isSubmitting || !address}
         >
-          Commander
+          {isSubmitting ? "Création..." : "Commander"}
         </Button>
       </div>
     </div>
