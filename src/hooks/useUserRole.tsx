@@ -7,53 +7,66 @@ export type { UserRole } from "@/types/database";
 
 export const useUserRole = () => {
   const { user } = useAuth();
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
-      setRole(null);
+      setRoles([]);
       setLoading(false);
       return;
     }
 
-    const fetchRole = async () => {
-      // Use raw query since types aren't regenerated yet
-      const { data, error } = await (supabase as any)
+    const fetchRoles = async () => {
+      const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
 
       if (error) {
-        console.error("Error fetching role:", error);
+        console.error("Error fetching roles:", error);
+      } else {
+        const userRoles = (data || []).map((r) => r.role as UserRole);
+        setRoles(userRoles.length > 0 ? userRoles : []);
       }
-      
-      setRole(data?.role || null);
       setLoading(false);
     };
 
-    fetchRole();
+    fetchRoles();
   }, [user]);
 
-  const setUserRole = async (newRole: UserRole) => {
-    if (!user) return { error: new Error("User not authenticated") };
+  const addRole = async (newRole: UserRole) => {
+    if (!user) return { error: new Error("Not authenticated") };
 
-    const { error } = await (supabase as any)
+    // Check if role already exists
+    if (roles.includes(newRole)) {
+      return { error: null };
+    }
+
+    const { error } = await supabase
       .from("user_roles")
-      .upsert({
+      .insert({
         user_id: user.id,
         role: newRole,
-      }, {
-        onConflict: "user_id,role"
       });
 
     if (!error) {
-      setRole(newRole);
+      setRoles((prev) => [...prev, newRole]);
     }
 
     return { error };
   };
 
-  return { role, loading, setUserRole };
+  const hasRole = (role: UserRole) => {
+    return roles.includes(role);
+  };
+
+  // Primary role for backwards compatibility
+  const role = roles[0] || "client";
+
+  const setUserRole = async (newRole: UserRole) => {
+    return addRole(newRole);
+  };
+
+  return { roles, role, loading, addRole, hasRole, setUserRole };
 };

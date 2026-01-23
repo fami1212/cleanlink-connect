@@ -17,6 +17,8 @@ interface MapProps {
   providerLat?: number;
   providerLng?: number;
   showRoute?: boolean;
+  showTruck?: boolean;
+  truckDestination?: { lat: number; lng: number };
   interactive?: boolean;
   className?: string;
 }
@@ -28,6 +30,8 @@ const Map = ({
   providerLat,
   providerLng,
   showRoute = false,
+  showTruck = false,
+  truckDestination,
   interactive = true,
   className = "h-48",
 }: MapProps) => {
@@ -86,10 +90,13 @@ const Map = ({
 
   // Update provider marker
   useEffect(() => {
-    if (!mapInstanceRef.current || !providerLat || !providerLng) return;
+    const lat = providerLat || (showTruck && truckDestination ? truckDestination.lat + 0.01 : undefined);
+    const lng = providerLng || (showTruck && truckDestination ? truckDestination.lng + 0.01 : undefined);
+    
+    if (!mapInstanceRef.current || !lat || !lng) return;
 
     if (providerMarkerRef.current) {
-      providerMarkerRef.current.setLatLng([providerLat, providerLng]);
+      providerMarkerRef.current.setLatLng([lat, lng]);
     } else {
       const providerIcon = L.divIcon({
         html: `<div class="bg-accent text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">🚛</div>`,
@@ -97,11 +104,11 @@ const Map = ({
         iconSize: [32, 32],
       });
 
-      providerMarkerRef.current = L.marker([providerLat, providerLng], {
+      providerMarkerRef.current = L.marker([lat, lng], {
         icon: providerIcon,
       }).addTo(mapInstanceRef.current);
     }
-  }, [providerLat, providerLng]);
+  }, [providerLat, providerLng, showTruck, truckDestination]);
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
