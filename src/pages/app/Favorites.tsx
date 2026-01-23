@@ -1,22 +1,37 @@
 import { useNavigate } from "react-router-dom";
-import { Heart, Star, Phone, Truck, RefreshCw } from "lucide-react";
+import { Heart, Star, Phone, Truck, RefreshCw, MapPin } from "lucide-react";
 import BottomNav from "@/components/app/BottomNav";
 import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useProviders } from "@/hooks/useProviders";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const Favorites = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { favorites, loading, removeFavorite } = useFavorites();
+  const { favorites, loading: favLoading, removeFavorite, addFavorite, isFavorite } = useFavorites();
+  const { providers, loading: provLoading } = useProviders();
 
-  const handleRemoveFavorite = async (providerId: string) => {
-    const { error } = await removeFavorite(providerId);
-    if (error) {
-      toast.error("Erreur lors de la suppression");
+  const loading = authLoading || favLoading || provLoading;
+
+  const handleToggleFavorite = async (providerId: string) => {
+    if (!user) {
+      toast.error("Connectez-vous pour ajouter aux favoris");
+      navigate("/app/auth");
+      return;
+    }
+
+    if (isFavorite(providerId)) {
+      const { error } = await removeFavorite(providerId);
+      if (!error) {
+        toast.success("Favori supprimé");
+      }
     } else {
-      toast.success("Favori supprimé");
+      const { error } = await addFavorite(providerId);
+      if (!error) {
+        toast.success("Ajouté aux favoris");
+      }
     }
   };
 
@@ -24,7 +39,7 @@ const Favorites = () => {
     navigate("/app/order", { state: { preferredProviderId: providerId } });
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
         <RefreshCw className="w-8 h-8 text-primary animate-spin" />
@@ -63,48 +78,26 @@ const Favorites = () => {
     );
   }
 
-  // Demo data when no real favorites
-  const demoFavorites = favorites.length > 0 ? [] : [
-    {
-      id: "demo-1",
-      provider_id: "demo-provider-1",
-      name: "Boubacar Camara",
-      rating: 4.8,
-      reviews: 156,
-      specialty: "Vidange fosse septique",
-      certified: true,
-    },
-    {
-      id: "demo-2",
-      provider_id: "demo-provider-2",
-      name: "Amadou Sow",
-      rating: 4.6,
-      reviews: 89,
-      specialty: "Curage canalisations",
-      certified: true,
-    },
-    {
-      id: "demo-3",
-      provider_id: "demo-provider-3",
-      name: "Moussa Diop",
-      rating: 4.5,
-      reviews: 67,
-      specialty: "Urgence débordement",
-      certified: false,
-    },
-  ];
-
-  const displayItems = favorites.length > 0 
+  // Display favorites if available, otherwise show available providers
+  const displayProviders = favorites.length > 0 
     ? favorites.map(f => ({
-        id: f.id,
-        provider_id: f.provider_id,
+        id: f.provider_id,
         name: f.provider?.company_name || "Prestataire",
         rating: f.provider?.rating || 0,
-        reviews: f.provider?.total_missions || 0,
-        specialty: f.provider?.vehicle_type || "Service général",
+        missions: f.provider?.total_missions || 0,
+        specialty: f.provider?.vehicle_type || "Vidange fosse septique",
         certified: f.provider?.is_verified || false,
+        isFav: true,
       }))
-    : demoFavorites;
+    : providers.slice(0, 5).map(p => ({
+        id: p.id,
+        name: p.company_name || "Prestataire certifié",
+        rating: p.rating || 4.5,
+        missions: p.total_missions || 0,
+        specialty: p.vehicle_type || "Service général",
+        certified: p.is_verified || false,
+        isFav: isFavorite(p.id),
+      }));
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20">
@@ -112,12 +105,12 @@ const Favorites = () => {
       <div className="bg-card border-b border-border safe-area-top">
         <div className="p-4">
           <h1 className="font-display text-xl font-bold text-foreground">
-            Mes favoris
+            {favorites.length > 0 ? "Mes favoris" : "Prestataires disponibles"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {favorites.length > 0 
               ? `${favorites.length} prestataire${favorites.length > 1 ? 's' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}`
-              : "Prestataires populaires"
+              : `${providers.length} prestataire${providers.length > 1 ? 's' : ''} en ligne`
             }
           </p>
         </div>
@@ -125,8 +118,8 @@ const Favorites = () => {
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {displayItems.length > 0 ? (
-          displayItems.map((provider) => (
+        {displayProviders.length > 0 ? (
+          displayProviders.map((provider) => (
             <div
               key={provider.id}
               className="bg-card border border-border rounded-xl p-4"
@@ -134,7 +127,7 @@ const Favorites = () => {
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center shrink-0">
                   <span className="text-lg font-bold text-primary-foreground">
-                    {provider.name.split(" ").map((n) => n[0]).join("")}
+                    {provider.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -151,10 +144,10 @@ const Favorites = () => {
                   <div className="flex items-center gap-1 mb-2">
                     <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                     <span className="text-sm font-medium text-foreground">
-                      {provider.rating}
+                      {provider.rating.toFixed(1)}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      ({provider.reviews} {favorites.length > 0 ? 'missions' : 'avis'})
+                      ({provider.missions} missions)
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -163,10 +156,20 @@ const Favorites = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => favorites.length > 0 && handleRemoveFavorite(provider.provider_id)}
-                  className="w-10 h-10 bg-destructive/10 rounded-full flex items-center justify-center shrink-0"
+                  onClick={() => handleToggleFavorite(provider.id)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                    provider.isFav 
+                      ? "bg-destructive/10" 
+                      : "bg-muted hover:bg-destructive/10"
+                  }`}
                 >
-                  <Heart className="w-5 h-5 text-destructive fill-destructive" />
+                  <Heart 
+                    className={`w-5 h-5 ${
+                      provider.isFav 
+                        ? "text-destructive fill-destructive" 
+                        : "text-muted-foreground"
+                    }`} 
+                  />
                 </button>
               </div>
               <div className="flex gap-3 mt-4">
@@ -178,7 +181,7 @@ const Favorites = () => {
                   variant="gradient" 
                   size="sm" 
                   className="flex-1"
-                  onClick={() => handleOrder(provider.provider_id)}
+                  onClick={() => handleOrder(provider.id)}
                 >
                   Commander
                 </Button>
@@ -188,13 +191,13 @@ const Favorites = () => {
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="w-8 h-8 text-muted-foreground" />
+              <MapPin className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="font-display font-semibold text-foreground mb-2">
-              Aucun favori
+              Aucun prestataire disponible
             </h3>
             <p className="text-sm text-muted-foreground">
-              Sauvegardez vos prestataires préférés ici
+              Les prestataires apparaîtront ici une fois en ligne
             </p>
           </div>
         )}
