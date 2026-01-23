@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
+import { RefreshCw } from "lucide-react";
 import logo from "@/assets/linkeco-logo.png";
 
 const emailSchema = z.string().email("Email invalide");
@@ -13,18 +15,37 @@ const passwordSchema = z.string().min(6, "Minimum 6 caractères");
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, signIn, signUp } = useAuth();
+  const { roles, loading: roleLoading, addRole } = useUserRole();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Get intended role and redirect from location state
+  const intendedRole = location.state?.intendedRole;
+  const redirectTo = location.state?.redirectTo;
+
+  // Auto-redirect if user is already logged in
   useEffect(() => {
-    if (!loading && user) {
-      navigate("/app/role-select");
+    if (!loading && !roleLoading && user) {
+      // User is logged in, determine where to redirect
+      if (redirectTo && intendedRole) {
+        // Add the intended role and redirect
+        addRole(intendedRole).then(() => {
+          navigate(redirectTo, { replace: true });
+        });
+      } else if (roles.includes("provider")) {
+        navigate("/app/provider", { replace: true });
+      } else if (roles.includes("client") || roles.length > 0) {
+        navigate("/app", { replace: true });
+      } else {
+        navigate("/app/role-select", { replace: true });
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, roleLoading, roles, navigate, intendedRole, redirectTo, addRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,9 +70,10 @@ const Auth = () => {
         } else {
           toast.error("Erreur de connexion");
         }
+        setIsSubmitting(false);
       } else {
         toast.success("Connexion réussie!");
-        navigate("/app/role-select");
+        // Redirect will happen via useEffect when user state updates
       }
     } else {
       if (!fullName.trim()) {
@@ -67,25 +89,24 @@ const Auth = () => {
         } else {
           toast.error("Erreur d'inscription");
         }
+        setIsSubmitting(false);
       } else {
         toast.success("Compte créé avec succès!");
-        navigate("/app/role-select");
+        // Redirect will happen via useEffect when user state updates
       }
     }
-
-    setIsSubmitting(false);
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/10 to-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 to-background flex flex-col safe-area-top safe-area-bottom">
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <img src={logo} alt="Link'eco" className="h-16 mb-8" />
         
@@ -164,6 +185,16 @@ const Auth = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Back to landing */}
+      <div className="p-6 text-center">
+        <button
+          onClick={() => navigate("/")}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← Retour au site
+        </button>
       </div>
     </div>
   );

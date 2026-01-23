@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { RefreshCw } from "lucide-react";
 import logo from "@/assets/linkeco-logo.png";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const slides = [
   {
@@ -25,6 +28,22 @@ const slides = [
 const Onboarding = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { roles, loading: roleLoading } = useUserRole();
+
+  // Auto-redirect if user is already logged in
+  useEffect(() => {
+    if (!authLoading && !roleLoading && user) {
+      if (roles.includes("provider")) {
+        navigate("/app/provider", { replace: true });
+      } else if (roles.includes("client") || roles.length > 0) {
+        navigate("/app", { replace: true });
+      } else {
+        // User logged in but no role, go to role select
+        navigate("/app/role-select", { replace: true });
+      }
+    }
+  }, [user, authLoading, roleLoading, roles, navigate]);
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
@@ -37,6 +56,15 @@ const Onboarding = () => {
   const handleSkip = () => {
     navigate("/app/role-select");
   };
+
+  // Show loading while checking auth
+  if (authLoading || roleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -88,12 +116,13 @@ const Onboarding = () => {
         {/* Dots */}
         <div className="flex justify-center gap-2 mb-6">
           {slides.map((_, index) => (
-            <div
+            <button
               key={index}
+              onClick={() => setCurrentSlide(index)}
               className={`h-2 rounded-full transition-all duration-300 ${
                 index === currentSlide
                   ? "w-8 bg-primary"
-                  : "w-2 bg-muted-foreground/30"
+                  : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
               }`}
             />
           ))}

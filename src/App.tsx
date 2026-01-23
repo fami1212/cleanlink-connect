@@ -16,6 +16,12 @@ import Order from "./pages/app/Order";
 import Payment from "./pages/app/Payment";
 import Tracking from "./pages/app/Tracking";
 import Profile from "./pages/app/Profile";
+import ProfileEdit from "./pages/app/ProfileEdit";
+import OrderHistory from "./pages/app/OrderHistory";
+import PaymentMethods from "./pages/app/PaymentMethods";
+import Notifications from "./pages/app/Notifications";
+import Help from "./pages/app/Help";
+import Settings from "./pages/app/Settings";
 import Favorites from "./pages/app/Favorites";
 import ProviderDashboard from "./pages/app/ProviderDashboard";
 
@@ -41,6 +47,12 @@ const App = () => (
             <Route path="/app/payment" element={<Payment />} />
             <Route path="/app/tracking" element={<Tracking />} />
             <Route path="/app/profile" element={<Profile />} />
+            <Route path="/app/profile/edit" element={<ProfileEdit />} />
+            <Route path="/app/profile/history" element={<OrderHistory />} />
+            <Route path="/app/profile/payments" element={<PaymentMethods />} />
+            <Route path="/app/profile/notifications" element={<Notifications />} />
+            <Route path="/app/help" element={<Help />} />
+            <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/favorites" element={<Favorites />} />
             <Route path="/app/provider" element={<ProviderDashboard />} />
             

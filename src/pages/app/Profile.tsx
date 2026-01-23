@@ -144,7 +144,7 @@ const Profile = () => {
           {menuItems.map((item, index) => (
             <button
               key={item.label}
-              onClick={() => toast.info("Fonctionnalité à venir")}
+              onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors ${
                 index !== menuItems.length - 1 ? "border-b border-border" : ""
               }`}
