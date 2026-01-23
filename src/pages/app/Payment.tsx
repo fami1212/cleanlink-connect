@@ -1,11 +1,41 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Smartphone, CreditCard, Banknote, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Smartphone, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOrders } from "@/hooks/useOrders";
+import { toast } from "sonner";
+import { PaymentMethod } from "@/types/database";
+
+const paymentMethodMap: Record<string, PaymentMethod> = {
+  wave: "wave",
+  orange: "orange_money",
+  free: "free_money",
+  cash: "cash",
+};
+
+const serviceTypeLabels: Record<string, string> = {
+  fosse_septique: "Vidange fosse septique",
+  latrines: "Vidange latrines",
+  urgence: "Urgence débordement",
+  curage: "Curage canalisations",
+};
 
 const Payment = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { currentOrder, updateOrder } = useOrders();
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const orderId = location.state?.orderId || currentOrder?.id;
+  const priceData = location.state?.price;
+
+  // Use current order data or fallback to location state
+  const orderData = currentOrder || null;
+  const displayPrice = orderData?.price_min || priceData?.min || 25000;
+  const serviceType = orderData?.service_type || "fosse_septique";
+  const address = orderData?.address || "Adresse non disponible";
 
   const paymentMethods = [
     {
@@ -34,6 +64,54 @@ const Payment = () => {
     },
   ];
 
+  const handlePayment = async () => {
+    if (!orderId) {
+      toast.error("Commande non trouvée");
+      return;
+    }
+
+    if (!selectedMethod) {
+      toast.error("Veuillez choisir un moyen de paiement");
+      return;
+    }
+
+    if (selectedMethod !== "cash" && !phoneNumber) {
+      toast.error("Veuillez entrer votre numéro de téléphone");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    const { error } = await updateOrder(orderId, {
+      payment_method: paymentMethodMap[selectedMethod],
+      status: "pending", // Waiting for provider to accept
+    });
+
+    setIsProcessing(false);
+
+    if (error) {
+      toast.error("Erreur lors du paiement");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Paiement confirmé! Recherche d'un prestataire...");
+    navigate("/app/tracking", { state: { orderId } });
+  };
+
+  if (!orderId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center p-4">
+          <p className="text-muted-foreground mb-4">Aucune commande en cours</p>
+          <Button variant="hero" onClick={() => navigate("/app")}>
+            Retour à l'accueil
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -61,17 +139,17 @@ const Payment = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Service</span>
-              <span className="text-foreground">Vidange fosse septique</span>
+              <span className="text-foreground">{serviceTypeLabels[serviceType]}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Adresse</span>
-              <span className="text-foreground">Rue Meya, Dakar</span>
+              <span className="text-foreground text-right max-w-[60%] truncate">{address}</span>
             </div>
             <div className="border-t border-border my-3" />
             <div className="flex justify-between">
-              <span className="font-semibold text-foreground">Total</span>
+              <span className="font-semibold text-foreground">Total estimé</span>
               <span className="font-display font-bold text-xl text-primary">
-                25 000 FCFA
+                {displayPrice.toLocaleString()} FCFA
               </span>
             </div>
           </div>
@@ -119,6 +197,8 @@ const Payment = () => {
             <input
               type="tel"
               placeholder="+221 77 XXX XX XX"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
               className="w-full p-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
             />
           </div>
@@ -142,10 +222,10 @@ const Payment = () => {
           variant="hero"
           size="xl"
           className="w-full"
-          disabled={!selectedMethod}
-          onClick={() => navigate("/app/tracking")}
+          disabled={!selectedMethod || isProcessing}
+          onClick={handlePayment}
         >
-          Confirmer le paiement
+          {isProcessing ? "Traitement..." : "Confirmer le paiement"}
         </Button>
       </div>
     </div>
