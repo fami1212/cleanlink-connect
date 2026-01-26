@@ -108,7 +108,10 @@ export const useMyProvider = () => {
 
     const { data, error } = await supabase
       .from("providers")
-      .update(updates)
+      .update({
+        ...updates,
+        ...(updates.latitude || updates.longitude ? { last_location_at: new Date().toISOString() } : {}),
+      })
       .eq("user_id", user.id)
       .select()
       .single();

@@ -1,45 +1,162 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MapPin, Clock, Check, X, Star, TrendingUp, Wallet } from "lucide-react";
+import { Bell, MapPin, Clock, Check, X, Star, TrendingUp, Wallet, Volume2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useMyProvider } from "@/hooks/useProviders";
+import { useProviderOrders } from "@/hooks/useProviderOrders";
+import { useProviderStats } from "@/hooks/useProviderStats";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { useProfile } from "@/hooks/useProfile";
+import MissionCard from "@/components/app/MissionCard";
+import ProviderBottomNav from "@/components/app/ProviderBottomNav";
 import logo from "@/assets/linkeco-logo.png";
+import { toast } from "@/hooks/use-toast";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
-  const [isOnline, setIsOnline] = useState(true);
-  const [showMissionDetail, setShowMissionDetail] = useState(false);
+  const { user } = useAuth();
+  const { provider, updateProvider, loading: providerLoading } = useMyProvider();
+  const { pendingOrders, activeOrder, loading: ordersLoading, acceptOrder, refuseOrder } = useProviderOrders();
+  const { stats, formatPrice, loading: statsLoading } = useProviderStats();
+  const { profile } = useProfile();
+  const { getCurrentPosition } = useGeolocation({ enableTracking: provider?.is_online });
+  
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const stats = [
-    { icon: TrendingUp, label: "Missions aujourd'hui", value: "3" },
-    { icon: Wallet, label: "Gains aujourd'hui", value: "75 000 FCFA" },
-    { icon: Star, label: "Note moyenne", value: "4.8" },
-  ];
+  // Redirect to register if not a provider
+  useEffect(() => {
+    if (!providerLoading && !provider && user) {
+      navigate("/app/provider/register");
+    }
+  }, [provider, providerLoading, user, navigate]);
 
-  const pendingMission = {
-    id: 1,
-    client: "Boubacar Camara",
-    address: "Rue Meya, Dakar",
-    service: "Vidange fosse septique",
-    price: "25 000 FCFA",
-    distance: "3.2 km",
-    time: "15 min",
+  // Redirect to mission page if there's an active order
+  useEffect(() => {
+    if (activeOrder) {
+      navigate("/app/provider/mission");
+    }
+  }, [activeOrder, navigate]);
+
+  // Play sound on new mission
+  useEffect(() => {
+    if (pendingOrders.length > 0 && soundEnabled && provider?.is_online) {
+      // Could add actual sound here
+      console.log("New mission available!");
+    }
+  }, [pendingOrders.length, soundEnabled, provider?.is_online]);
+
+  const handleToggleOnline = async (online: boolean) => {
+    setIsUpdatingStatus(true);
+    
+    if (online) {
+      // Get current position when going online
+      try {
+        await getCurrentPosition();
+      } catch (err) {
+        console.log("Could not get position:", err);
+      }
+    }
+    
+    const { error } = await updateProvider({ is_online: online });
+    setIsUpdatingStatus(false);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de changer le statut",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: online ? "Vous êtes en ligne" : "Vous êtes hors ligne",
+        description: online ? "Vous pouvez recevoir des missions" : "Vous ne recevrez plus de missions",
+      });
+    }
   };
 
+  const handleAcceptMission = async (orderId: string) => {
+    setIsAccepting(true);
+    const { error } = await acceptOrder(orderId);
+    setIsAccepting(false);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'accepter la mission",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Mission acceptée! 🎉",
+        description: "Rendez-vous chez le client",
+      });
+      navigate("/app/provider/mission");
+    }
+  };
+
+  const handleRefuseMission = async (orderId: string) => {
+    await refuseOrder(orderId);
+    toast({
+      title: "Mission refusée",
+      description: "Cette mission ne sera plus affichée",
+    });
+  };
+
+  const loading = providerLoading || ordersLoading || statsLoading;
+
+  if (loading || !provider) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const initials = profile?.full_name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase() || user?.email?.[0]?.toUpperCase() || "P";
+
+  const statItems = [
+    { icon: TrendingUp, label: "Missions aujourd'hui", value: String(stats.todayMissions) },
+    { icon: Wallet, label: "Gains aujourd'hui", value: formatPrice(stats.todayEarnings) },
+    { icon: Star, label: "Note moyenne", value: stats.averageRating > 0 ? String(stats.averageRating) : "-" },
+  ];
+
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-muted/30 pb-20">
       {/* Header */}
       <div className="bg-card safe-area-top">
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-10" />
           <div className="flex items-center gap-3">
-            <button className="relative w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                soundEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              }`}
+            >
+              <Volume2 className="w-5 h-5" />
             </button>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-sm font-bold text-primary-foreground">BC</span>
-            </div>
+            <button 
+              onClick={() => navigate("/app/profile/notifications")}
+              className="relative w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            >
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              {pendingOrders.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => navigate("/app/provider/profile")}
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+            >
+              <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+            </button>
           </div>
         </div>
 
@@ -47,17 +164,21 @@ const ProviderDashboard = () => {
         <div className="px-4 pb-4">
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-primary animate-pulse" : "bg-muted-foreground"}`} />
+              <div className={`w-3 h-3 rounded-full ${provider.is_online ? "bg-primary animate-pulse" : "bg-muted-foreground"}`} />
               <div>
                 <p className="font-medium text-foreground">
-                  {isOnline ? "En ligne" : "Hors ligne"}
+                  {provider.is_online ? "En ligne" : "Hors ligne"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isOnline ? "Prêt à recevoir des missions" : "Vous ne recevez pas de missions"}
+                  {provider.is_online ? "Prêt à recevoir des missions" : "Vous ne recevez pas de missions"}
                 </p>
               </div>
             </div>
-            <Switch checked={isOnline} onCheckedChange={setIsOnline} />
+            <Switch 
+              checked={provider.is_online || false} 
+              onCheckedChange={handleToggleOnline}
+              disabled={isUpdatingStatus}
+            />
           </div>
         </div>
       </div>
@@ -65,15 +186,19 @@ const ProviderDashboard = () => {
       {/* Stats */}
       <div className="px-4 py-4">
         <div className="grid grid-cols-3 gap-3">
-          {stats.map((stat) => (
-            <div
+          {statItems.map((stat) => (
+            <button
               key={stat.label}
-              className="bg-card border border-border rounded-xl p-3 text-center"
+              onClick={() => {
+                if (stat.icon === Wallet) navigate("/app/provider/earnings");
+                if (stat.icon === Star) navigate("/app/provider/reviews");
+              }}
+              className="bg-card border border-border rounded-xl p-3 text-center hover:border-primary/50 transition-colors"
             >
               <stat.icon className="w-5 h-5 text-primary mx-auto mb-1" />
-              <p className="font-display font-bold text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </div>
+              <p className="font-display font-bold text-foreground text-sm truncate">{stat.value}</p>
+              <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
+            </button>
           ))}
         </div>
       </div>
@@ -81,64 +206,36 @@ const ProviderDashboard = () => {
       {/* Pending missions */}
       <div className="px-4">
         <h2 className="font-display text-lg font-semibold text-foreground mb-3">
-          Nouvelle mission
+          {pendingOrders.length > 0 ? "Nouvelles missions" : "Missions disponibles"}
         </h2>
 
-        {isOnline ? (
-          <div className="bg-card border-2 border-primary rounded-xl overflow-hidden animate-pulse-slow">
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center">
-                  <span className="font-bold text-primary-foreground">BC</span>
+        {provider.is_online ? (
+          pendingOrders.length > 0 ? (
+            <div className="space-y-4">
+              {pendingOrders.slice(0, 3).map((order) => (
+                <div key={order.id} className="animate-pulse-slow">
+                  <MissionCard
+                    order={order}
+                    onAccept={() => handleAcceptMission(order.id)}
+                    onRefuse={() => handleRefuseMission(order.id)}
+                    isLoading={isAccepting}
+                  />
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-display font-semibold text-foreground">
-                    {pendingMission.client}
-                  </h3>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="w-3 h-3" />
-                    <span>{pendingMission.distance}</span>
-                    <span>•</span>
-                    <Clock className="w-3 h-3" />
-                    <span>{pendingMission.time}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <span className="text-foreground">{pendingMission.address}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">{pendingMission.service}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg mb-4">
-                <span className="text-sm text-muted-foreground">Rémunération</span>
-                <span className="font-display font-bold text-primary">{pendingMission.price}</span>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Refuser
-                </Button>
-                <Button
-                  variant="hero"
-                  className="flex-1"
-                  onClick={() => navigate("/app/provider/mission")}
-                >
-                  <Check className="w-4 h-4 mr-2" />
-                  Accepter
-                </Button>
-              </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="bg-card border border-border rounded-xl p-8 text-center">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-display font-semibold text-foreground mb-2">
+                Aucune mission disponible
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Restez en ligne pour recevoir de nouvelles missions
+              </p>
+            </div>
+          )
         ) : (
           <div className="bg-card border border-border rounded-xl p-8 text-center">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -156,48 +253,44 @@ const ProviderDashboard = () => {
 
       {/* Recent missions */}
       <div className="px-4 py-6">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-3">
-          Missions récentes
-        </h2>
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-card border border-border rounded-xl p-4 flex items-center gap-4"
-            >
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <Check className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">Vidange fosse septique</p>
-                <p className="text-sm text-muted-foreground">Médina, Dakar • Aujourd'hui</p>
-              </div>
-              <span className="font-display font-semibold text-primary">25 000 F</span>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Missions récentes
+          </h2>
+          <button
+            onClick={() => navigate("/app/provider/earnings")}
+            className="text-sm text-primary font-medium"
+          >
+            Voir tout
+          </button>
         </div>
+        
+        {stats.todayMissions > 0 ? (
+          <div className="space-y-3">
+            {Array.from({ length: Math.min(stats.todayMissions, 3) }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-card border border-border rounded-xl p-4 flex items-center gap-4"
+              >
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Check className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Vidange fosse septique</p>
+                  <p className="text-sm text-muted-foreground">Dakar • Aujourd'hui</p>
+                </div>
+                <span className="font-display font-semibold text-primary">25 000 F</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-xl p-6 text-center">
+            <p className="text-muted-foreground">Pas de missions récentes</p>
+          </div>
+        )}
       </div>
 
-      {/* Bottom nav for provider */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
-        <div className="flex items-center justify-around h-16">
-          <button className="flex flex-col items-center gap-1 text-primary">
-            <MapPin className="w-5 h-5" />
-            <span className="text-xs font-medium">Missions</span>
-          </button>
-          <button
-            onClick={() => navigate("/app/profile")}
-            className="flex flex-col items-center gap-1 text-muted-foreground"
-          >
-            <Wallet className="w-5 h-5" />
-            <span className="text-xs font-medium">Revenus</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-muted-foreground">
-            <Star className="w-5 h-5" />
-            <span className="text-xs font-medium">Avis</span>
-          </button>
-        </div>
-      </nav>
+      <ProviderBottomNav />
     </div>
   );
 };

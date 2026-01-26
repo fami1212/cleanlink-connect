@@ -158,9 +158,11 @@ export type Database = {
           capacity_liters: number | null
           company_name: string | null
           created_at: string
+          device_token: string | null
           id: string
           is_online: boolean | null
           is_verified: boolean | null
+          last_location_at: string | null
           latitude: number | null
           longitude: number | null
           rating: number | null
@@ -172,9 +174,11 @@ export type Database = {
           capacity_liters?: number | null
           company_name?: string | null
           created_at?: string
+          device_token?: string | null
           id?: string
           is_online?: boolean | null
           is_verified?: boolean | null
+          last_location_at?: string | null
           latitude?: number | null
           longitude?: number | null
           rating?: number | null
@@ -186,9 +190,11 @@ export type Database = {
           capacity_liters?: number | null
           company_name?: string | null
           created_at?: string
+          device_token?: string | null
           id?: string
           is_online?: boolean | null
           is_verified?: boolean | null
+          last_location_at?: string | null
           latitude?: number | null
           longitude?: number | null
           rating?: number | null
