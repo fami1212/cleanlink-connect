@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, Bell, Search } from "lucide-react";
+import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, Search } from "lucide-react";
 import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
+import NotificationBell from "@/components/app/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
+import { useProfile } from "@/hooks/useProfile";
 import logo from "@/assets/linkeco-logo.png";
 import heroImage from "@/assets/hero-dakar.jpg";
 
@@ -12,6 +14,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { currentOrder } = useOrders();
+  const { profile } = useProfile();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,12 +49,13 @@ const Home = () => {
     },
   ];
 
-  // Get user's name
-  const displayName = user?.user_metadata?.full_name?.split(" ")[0] || 
+  // Get user's name from profile or user metadata
+  const displayName = profile?.full_name?.split(" ")[0] || 
+    user?.user_metadata?.full_name?.split(" ")[0] || 
     user?.email?.split("@")[0] || 
     "Ami";
   
-  const initials = (user?.user_metadata?.full_name || user?.email || "U")
+  const initials = (profile?.full_name || user?.user_metadata?.full_name || user?.email || "U")
     .split(" ")
     .map((n: string) => n[0])
     .join("")
@@ -76,15 +80,16 @@ const Home = () => {
             <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
               <Search className="w-5 h-5 text-muted-foreground" />
             </button>
-            <button className="relative w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-            </button>
+            <NotificationBell />
             <button 
               onClick={() => navigate("/app/profile")}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden"
             >
-              <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+              )}
             </button>
           </div>
         </div>
