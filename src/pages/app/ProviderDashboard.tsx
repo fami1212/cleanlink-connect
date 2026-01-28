@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MapPin, Clock, Check, X, Star, TrendingUp, Wallet, Volume2 } from "lucide-react";
+import { MapPin, Check, Star, TrendingUp, Wallet, Volume2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
@@ -8,8 +8,10 @@ import { useProviderOrders } from "@/hooks/useProviderOrders";
 import { useProviderStats } from "@/hooks/useProviderStats";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useProfile } from "@/hooks/useProfile";
+import { useNotifications } from "@/hooks/useNotifications";
 import MissionCard from "@/components/app/MissionCard";
 import ProviderBottomNav from "@/components/app/ProviderBottomNav";
+import NotificationBell from "@/components/app/NotificationBell";
 import logo from "@/assets/linkeco-logo.png";
 import { toast } from "@/hooks/use-toast";
 
@@ -20,6 +22,7 @@ const ProviderDashboard = () => {
   const { pendingOrders, activeOrder, loading: ordersLoading, acceptOrder, refuseOrder } = useProviderOrders();
   const { stats, formatPrice, loading: statsLoading } = useProviderStats();
   const { profile } = useProfile();
+  const { unreadCount } = useNotifications();
   const { getCurrentPosition } = useGeolocation({ enableTracking: provider?.is_online });
   
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -40,13 +43,13 @@ const ProviderDashboard = () => {
     }
   }, [activeOrder, navigate]);
 
-  // Play sound on new mission
+  // Play sound on new mission or new notification
   useEffect(() => {
-    if (pendingOrders.length > 0 && soundEnabled && provider?.is_online) {
+    if ((pendingOrders.length > 0 || unreadCount > 0) && soundEnabled && provider?.is_online) {
       // Could add actual sound here
-      console.log("New mission available!");
+      console.log("New mission or notification available!");
     }
-  }, [pendingOrders.length, soundEnabled, provider?.is_online]);
+  }, [pendingOrders.length, unreadCount, soundEnabled, provider?.is_online]);
 
   const handleToggleOnline = async (online: boolean) => {
     setIsUpdatingStatus(true);
@@ -142,20 +145,16 @@ const ProviderDashboard = () => {
             >
               <Volume2 className="w-5 h-5" />
             </button>
-            <button 
-              onClick={() => navigate("/app/profile/notifications")}
-              className="relative w-10 h-10 rounded-full bg-muted flex items-center justify-center"
-            >
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              {pendingOrders.length > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-              )}
-            </button>
+            <NotificationBell />
             <button
               onClick={() => navigate("/app/provider/profile")}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden"
             >
-              <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+              )}
             </button>
           </div>
         </div>

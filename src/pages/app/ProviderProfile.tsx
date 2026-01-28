@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -9,12 +9,15 @@ import {
   Settings,
   ChevronRight,
   Shield,
-  LogOut
+  LogOut,
+  Camera,
+  Loader2
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
 import { useProfile } from "@/hooks/useProfile";
+import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 import ProviderBottomNav from "@/components/app/ProviderBottomNav";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,7 +25,9 @@ const ProviderProfile = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { provider, updateProvider, loading } = useMyProvider();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
+  const { uploadAvatar, uploading: avatarUploading } = useAvatarUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleToggleOnline = async (online: boolean) => {
@@ -42,6 +47,37 @@ const ProviderProfile = () => {
   const handleLogout = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Erreur", description: "Veuillez sélectionner une image", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "L'image ne doit pas dépasser 5 Mo", variant: "destructive" });
+      return;
+    }
+
+    const { url, error } = await uploadAvatar(file);
+
+    if (error) {
+      toast({ title: "Erreur", description: "Erreur lors du téléchargement", variant: "destructive" });
+      return;
+    }
+
+    if (url) {
+      await updateProfile({ avatar_url: url });
+      toast({ title: "Succès", description: "Photo mise à jour!" });
+    }
   };
 
   const vehicleLabels: Record<string, string> = {
@@ -86,8 +122,30 @@ const ProviderProfile = () => {
       {/* Profile header */}
       <div className="px-4 py-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">{initials}</span>
+          <div className="relative">
+            <button
+              onClick={handleAvatarClick}
+              disabled={avatarUploading}
+              className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden"
+            >
+              {avatarUploading ? (
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              ) : profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-white">{initials}</span>
+              )}
+            </button>
+            <div className="absolute bottom-0 right-0 w-7 h-7 bg-card border border-border rounded-full flex items-center justify-center shadow-md">
+              <Camera className="w-3.5 h-3.5 text-muted-foreground" />
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
           </div>
           <div className="flex-1">
             <h2 className="font-display text-xl font-semibold text-foreground">

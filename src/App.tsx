@@ -20,6 +20,7 @@ import ProfileEdit from "./pages/app/ProfileEdit";
 import OrderHistory from "./pages/app/OrderHistory";
 import PaymentMethods from "./pages/app/PaymentMethods";
 import Notifications from "./pages/app/Notifications";
+import NotificationSettings from "./pages/app/NotificationSettings";
 import Help from "./pages/app/Help";
 import Settings from "./pages/app/Settings";
 import Favorites from "./pages/app/Favorites";
@@ -57,7 +58,8 @@ const App = () => (
             <Route path="/app/profile/edit" element={<ProfileEdit />} />
             <Route path="/app/profile/history" element={<OrderHistory />} />
             <Route path="/app/profile/payments" element={<PaymentMethods />} />
-            <Route path="/app/profile/notifications" element={<Notifications />} />
+            <Route path="/app/notifications" element={<Notifications />} />
+            <Route path="/app/profile/notification-settings" element={<NotificationSettings />} />
             <Route path="/app/help" element={<Help />} />
             <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/favorites" element={<Favorites />} />

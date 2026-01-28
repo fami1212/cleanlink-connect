@@ -1,23 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Camera, Save } from "lucide-react";
+import { ArrowLeft, User, Camera, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 import { toast } from "sonner";
 
 const ProfileEdit = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profile, updateProfile } = useProfile();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { uploadAvatar, uploading: avatarUploading } = useAvatarUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [fullName, setFullName] = useState(profile?.full_name || user?.user_metadata?.full_name || "");
-  const [phone, setPhone] = useState(profile?.phone || "");
-  const [address, setAddress] = useState(profile?.address || "");
-  const [city, setCity] = useState(profile?.city || "Dakar");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("Dakar");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync form state with profile data when it loads
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || user?.user_metadata?.full_name || "");
+      setPhone(profile.phone || "");
+      setAddress(profile.address || "");
+      setCity(profile.city || "Dakar");
+      setAvatarUrl(profile.avatar_url);
+    }
+  }, [profile, user]);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    const { url, error } = await uploadAvatar(file);
+
+    if (error) {
+      toast.error("Erreur lors du téléchargement");
+      return;
+    }
+
+    if (url) {
+      setAvatarUrl(url);
+      // Update profile with new avatar URL
+      await updateProfile({ avatar_url: url });
+      toast.success("Photo mise à jour!");
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -27,6 +77,7 @@ const ProfileEdit = () => {
       phone,
       address,
       city,
+      avatar_url: avatarUrl,
     });
 
     setIsSaving(false);
@@ -35,9 +86,17 @@ const ProfileEdit = () => {
       toast.error("Erreur lors de la mise à jour");
     } else {
       toast.success("Profil mis à jour!");
-      navigate("/app/profile");
+      navigate(-1);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -59,21 +118,34 @@ const ProfileEdit = () => {
       {/* Avatar section */}
       <div className="p-6 flex flex-col items-center">
         <div className="relative">
-          <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-            {profile?.avatar_url ? (
+          <button
+            onClick={handleAvatarClick}
+            disabled={avatarUploading}
+            className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            {avatarUploading ? (
+              <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
+            ) : avatarUrl ? (
               <img 
-                src={profile.avatar_url} 
+                src={avatarUrl} 
                 alt="Avatar"
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
               <User className="w-12 h-12 text-primary-foreground" />
             )}
-          </div>
-          <button className="absolute bottom-0 right-0 w-8 h-8 bg-card border border-border rounded-full flex items-center justify-center shadow-md">
-            <Camera className="w-4 h-4 text-muted-foreground" />
           </button>
+          <div className="absolute bottom-0 right-0 w-8 h-8 bg-card border border-border rounded-full flex items-center justify-center shadow-md">
+            <Camera className="w-4 h-4 text-muted-foreground" />
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          className="hidden"
+        />
         <p className="text-sm text-muted-foreground mt-2">
           Appuyez pour changer la photo
         </p>
@@ -139,9 +211,13 @@ const ProfileEdit = () => {
           size="xl"
           className="w-full"
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || avatarUploading}
         >
-          <Save className="w-4 h-4 mr-2" />
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
           {isSaving ? "Enregistrement..." : "Enregistrer"}
         </Button>
       </div>

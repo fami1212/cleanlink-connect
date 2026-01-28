@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOrders } from "@/hooks/useOrders";
+import { useNotifications } from "@/hooks/useNotifications";
 import { toast } from "sonner";
 
 const Profile = () => {
@@ -15,6 +16,7 @@ const Profile = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { roles, addRole } = useUserRole();
   const { orders } = useOrders();
+  const { unreadCount } = useNotifications();
   const [isTogglingProvider, setIsTogglingProvider] = useState(false);
 
   const isProvider = roles.includes("provider");
@@ -47,12 +49,12 @@ const Profile = () => {
   };
 
   const menuItems = [
-    { icon: User, label: "Informations personnelles", path: "/app/profile/edit" },
-    { icon: FileText, label: "Historique des commandes", path: "/app/profile/history" },
-    { icon: CreditCard, label: "Moyens de paiement", path: "/app/profile/payments" },
-    { icon: Bell, label: "Notifications", path: "/app/profile/notifications" },
-    { icon: HelpCircle, label: "Aide et support", path: "/app/help" },
-    { icon: Settings, label: "Paramètres", path: "/app/settings" },
+    { icon: User, label: "Informations personnelles", path: "/app/profile/edit", badge: null },
+    { icon: FileText, label: "Historique des commandes", path: "/app/profile/history", badge: null },
+    { icon: CreditCard, label: "Moyens de paiement", path: "/app/profile/payments", badge: null },
+    { icon: Bell, label: "Notifications", path: "/app/notifications", badge: unreadCount > 0 ? unreadCount : null },
+    { icon: HelpCircle, label: "Aide et support", path: "/app/help", badge: null },
+    { icon: Settings, label: "Paramètres", path: "/app/settings", badge: null },
   ];
 
   if (authLoading || profileLoading) {
@@ -82,7 +84,7 @@ const Profile = () => {
       {/* Header */}
       <div className="bg-gradient-to-br from-primary to-linkeco-green-light safe-area-top">
         <div className="p-6 pt-8 text-center">
-          <div className="w-20 h-20 bg-primary-foreground rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <div className="w-20 h-20 bg-primary-foreground rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg overflow-hidden">
             {profile?.avatar_url ? (
               <img 
                 src={profile.avatar_url} 
@@ -155,6 +157,11 @@ const Profile = () => {
               <span className="flex-1 text-left font-medium text-foreground">
                 {item.label}
               </span>
+              {item.badge && (
+                <span className="w-6 h-6 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </span>
+              )}
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
           ))}
