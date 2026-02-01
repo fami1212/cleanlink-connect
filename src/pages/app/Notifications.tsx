@@ -32,8 +32,12 @@ const NotificationItem = ({
     }
 
     // Navigate based on notification type
-    if (notification.type === "new_order" && notification.data?.order_id) {
-      navigate(`/app/provider/mission/${notification.data.order_id}`);
+    if (notification.type === "new_order") {
+      // For providers: go to provider dashboard to see the mission
+      navigate("/app/provider");
+    } else if (notification.type === "order_update" && notification.data?.order_id) {
+      // For clients: go to tracking page
+      navigate("/app/tracking", { state: { orderId: notification.data.order_id } });
     }
   };
 

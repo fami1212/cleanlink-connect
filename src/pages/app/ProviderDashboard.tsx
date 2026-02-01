@@ -36,12 +36,8 @@ const ProviderDashboard = () => {
     }
   }, [provider, providerLoading, user, navigate]);
 
-  // Redirect to mission page if there's an active order
-  useEffect(() => {
-    if (activeOrder) {
-      navigate("/app/provider/mission");
-    }
-  }, [activeOrder, navigate]);
+  // Show banner for active order instead of auto-redirecting
+  // This allows the provider to still navigate around the app
 
   // Play sound on new mission or new notification
   useEffect(() => {
@@ -202,7 +198,26 @@ const ProviderDashboard = () => {
         </div>
       </div>
 
-      {/* Pending missions */}
+      {/* Active mission banner */}
+      {activeOrder && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={() => navigate("/app/provider/mission")}
+            className="w-full bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center gap-3"
+          >
+            <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
+              <span className="text-lg">🚛</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-semibold text-foreground">Mission en cours</p>
+              <p className="text-sm text-muted-foreground capitalize">
+                {activeOrder.status === "accepted" ? "Acceptée" : "En route"}
+              </p>
+            </div>
+            <span className="text-accent font-medium">Voir →</span>
+          </button>
+        </div>
+      )}
       <div className="px-4">
         <h2 className="font-display text-lg font-semibold text-foreground mb-3">
           {pendingOrders.length > 0 ? "Nouvelles missions" : "Missions disponibles"}
