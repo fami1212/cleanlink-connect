@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Truck, Building2, FileCheck, Upload } from "lucide-react";
+import { ArrowLeft, Truck, Building2, FileCheck, Upload, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 import { toast } from "@/hooks/use-toast";
 
 const ProviderRegister = () => {
@@ -15,8 +16,12 @@ const ProviderRegister = () => {
   const { user } = useAuth();
   const { createProvider } = useMyProvider();
   const { addRole } = useUserRole();
+  const { uploadDocument, uploading } = useDocumentUpload();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+
+  const licenseInputRef = useRef<HTMLInputElement>(null);
+  const registrationInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -24,6 +29,55 @@ const ProviderRegister = () => {
     capacityLiters: "",
     phone: "",
   });
+
+  const [documents, setDocuments] = useState({
+    license: null as File | null,
+    licenseUrl: null as string | null,
+    vehicleRegistration: null as File | null,
+    vehicleRegistrationUrl: null as string | null,
+  });
+
+  const handleLicenseSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "Le fichier ne doit pas dépasser 5 Mo", variant: "destructive" });
+      return;
+    }
+
+    setDocuments(prev => ({ ...prev, license: file }));
+
+    const { url, error } = await uploadDocument(file, "license");
+    if (error) {
+      toast({ title: "Erreur", description: "Échec du téléchargement", variant: "destructive" });
+      setDocuments(prev => ({ ...prev, license: null }));
+    } else if (url) {
+      setDocuments(prev => ({ ...prev, licenseUrl: url }));
+      toast({ title: "Succès", description: "Permis téléchargé" });
+    }
+  };
+
+  const handleRegistrationSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "Le fichier ne doit pas dépasser 5 Mo", variant: "destructive" });
+      return;
+    }
+
+    setDocuments(prev => ({ ...prev, vehicleRegistration: file }));
+
+    const { url, error } = await uploadDocument(file, "vehicle_registration");
+    if (error) {
+      toast({ title: "Erreur", description: "Échec du téléchargement", variant: "destructive" });
+      setDocuments(prev => ({ ...prev, vehicleRegistration: null }));
+    } else if (url) {
+      setDocuments(prev => ({ ...prev, vehicleRegistrationUrl: url }));
+      toast({ title: "Succès", description: "Carte grise téléchargée" });
+    }
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -50,6 +104,8 @@ const ProviderRegister = () => {
       capacity_liters: parseInt(formData.capacityLiters) || null,
       is_online: false,
       is_verified: false,
+      license_url: documents.licenseUrl,
+      vehicle_registration_url: documents.vehicleRegistrationUrl,
     });
 
     setLoading(false);
@@ -238,30 +294,86 @@ const ProviderRegister = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              {/* Vehicle Registration Upload */}
+              <div 
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                  documents.vehicleRegistration 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => registrationInputRef.current?.click()}
+              >
+                {uploading && !documents.vehicleRegistrationUrl ? (
+                  <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" />
+                ) : documents.vehicleRegistration ? (
+                  <CheckCircle className="w-8 h-8 text-primary mx-auto mb-2" />
+                ) : (
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                )}
                 <p className="font-medium text-foreground mb-1">
                   Carte grise du véhicule
                 </p>
                 <p className="text-sm text-muted-foreground mb-3">
-                  JPG, PNG ou PDF (max 5 Mo)
+                  {documents.vehicleRegistration 
+                    ? documents.vehicleRegistration.name 
+                    : "JPG, PNG ou PDF (max 5 Mo)"}
                 </p>
-                <Button variant="outline" size="sm">
-                  Choisir un fichier
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  type="button"
+                  disabled={uploading}
+                >
+                  {documents.vehicleRegistration ? "Changer" : "Choisir un fichier"}
                 </Button>
+                <input
+                  ref={registrationInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleRegistrationSelect}
+                  className="hidden"
+                />
               </div>
 
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              {/* License Upload */}
+              <div 
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                  documents.license 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => licenseInputRef.current?.click()}
+              >
+                {uploading && !documents.licenseUrl ? (
+                  <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" />
+                ) : documents.license ? (
+                  <CheckCircle className="w-8 h-8 text-primary mx-auto mb-2" />
+                ) : (
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                )}
                 <p className="font-medium text-foreground mb-1">
                   Permis de conduire
                 </p>
                 <p className="text-sm text-muted-foreground mb-3">
-                  JPG, PNG ou PDF (max 5 Mo)
+                  {documents.license 
+                    ? documents.license.name 
+                    : "JPG, PNG ou PDF (max 5 Mo)"}
                 </p>
-                <Button variant="outline" size="sm">
-                  Choisir un fichier
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  type="button"
+                  disabled={uploading}
+                >
+                  {documents.license ? "Changer" : "Choisir un fichier"}
                 </Button>
+                <input
+                  ref={licenseInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleLicenseSelect}
+                  className="hidden"
+                />
               </div>
             </div>
 
@@ -281,7 +393,7 @@ const ProviderRegister = () => {
                 variant="hero"
                 className="flex-1"
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || uploading}
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
