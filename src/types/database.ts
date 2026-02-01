@@ -34,6 +34,8 @@ export interface Provider {
   total_missions: number;
   latitude: number | null;
   longitude: number | null;
+  license_url: string | null;
+  vehicle_registration_url: string | null;
   created_at: string;
 }
 

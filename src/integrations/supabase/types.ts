@@ -197,10 +197,12 @@ export type Database = {
           is_verified: boolean | null
           last_location_at: string | null
           latitude: number | null
+          license_url: string | null
           longitude: number | null
           rating: number | null
           total_missions: number | null
           user_id: string
+          vehicle_registration_url: string | null
           vehicle_type: string | null
         }
         Insert: {
@@ -213,10 +215,12 @@ export type Database = {
           is_verified?: boolean | null
           last_location_at?: string | null
           latitude?: number | null
+          license_url?: string | null
           longitude?: number | null
           rating?: number | null
           total_missions?: number | null
           user_id: string
+          vehicle_registration_url?: string | null
           vehicle_type?: string | null
         }
         Update: {
@@ -229,10 +233,12 @@ export type Database = {
           is_verified?: boolean | null
           last_location_at?: string | null
           latitude?: number | null
+          license_url?: string | null
           longitude?: number | null
           rating?: number | null
           total_missions?: number | null
           user_id?: string
+          vehicle_registration_url?: string | null
           vehicle_type?: string | null
         }
         Relationships: []
