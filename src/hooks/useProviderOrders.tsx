@@ -174,6 +174,18 @@ export const useProviderOrders = () => {
     
     if (status === "completed") {
       updates.completed_at = new Date().toISOString();
+      
+      // Get the order to calculate final price from price range
+      const { data: orderData } = await supabase
+        .from("orders")
+        .select("price_min, price_max")
+        .eq("id", orderId)
+        .single();
+      
+      if (orderData?.price_min && orderData?.price_max) {
+        // Set final price as average of min and max
+        updates.final_price = Math.round((orderData.price_min + orderData.price_max) / 2);
+      }
     }
 
     const { data, error } = await supabase
