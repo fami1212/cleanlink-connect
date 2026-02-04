@@ -99,17 +99,42 @@ const Tracking = () => {
 
     setIsSubmitting(true);
 
+    // Update the order with rating
     const { error } = await updateOrder(orderId, {
       rating,
     });
 
-    setIsSubmitting(false);
-
     if (error) {
       toast.error("Erreur lors de la notation");
+      setIsSubmitting(false);
       return;
     }
 
+    // Update provider's average rating if we have a provider
+    if (order?.provider_id) {
+      // Get all completed orders with ratings for this provider
+      const { data: ratedOrders } = await supabase
+        .from("orders")
+        .select("rating")
+        .eq("provider_id", order.provider_id)
+        .eq("status", "completed")
+        .not("rating", "is", null);
+
+      if (ratedOrders && ratedOrders.length > 0) {
+        const allRatings = [...ratedOrders.map(o => o.rating!), rating];
+        const avgRating = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+        
+        await supabase
+          .from("providers")
+          .update({ 
+            rating: Math.round(avgRating * 10) / 10,
+            total_missions: ratedOrders.length + 1
+          })
+          .eq("id", order.provider_id);
+      }
+    }
+
+    setIsSubmitting(false);
     toast.success("Merci pour votre évaluation!");
     navigate("/app");
   };

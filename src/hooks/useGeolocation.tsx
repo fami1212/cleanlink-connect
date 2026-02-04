@@ -86,26 +86,32 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
 
   // Update provider position in database
   const updateProviderPosition = useCallback(async () => {
-    if (!provider) return;
+    if (!provider?.id) return;
 
     try {
       const pos = await getCurrentPosition();
       if (pos) {
-        await updateProvider({
-          latitude: pos.latitude,
-          longitude: pos.longitude,
-        });
-
-        // Update last_location_at timestamp
-        await supabase
+        // Update in a single call to avoid multiple requests
+        const { error } = await supabase
           .from("providers")
-          .update({ last_location_at: new Date().toISOString() })
+          .update({ 
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            last_location_at: new Date().toISOString() 
+          })
           .eq("id", provider.id);
+        
+        if (error) {
+          console.error("Error updating provider position:", error.message);
+        }
       }
     } catch (err) {
-      console.error("Error updating provider position:", err);
+      // Silent fail for geolocation errors - user may have denied permission
+      if (err instanceof Error && !err.message.includes("denied")) {
+        console.error("Geolocation error:", err.message);
+      }
     }
-  }, [provider, getCurrentPosition, updateProvider]);
+  }, [provider?.id, getCurrentPosition]);
 
   // Start continuous tracking
   const startTracking = useCallback(async () => {

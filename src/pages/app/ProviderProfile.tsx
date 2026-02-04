@@ -264,6 +264,7 @@ const ProviderProfile = () => {
           </button>
 
           <button
+            onClick={() => navigate("/app/provider/documents")}
             className="w-full p-4 flex items-center gap-3 text-left"
           >
             <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
