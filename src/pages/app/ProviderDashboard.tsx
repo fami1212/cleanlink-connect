@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Check, Star, TrendingUp, Wallet, Volume2 } from "lucide-react";
+import { MapPin, Star, TrendingUp, Wallet, Volume2, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
@@ -9,25 +9,34 @@ import { useProviderStats } from "@/hooks/useProviderStats";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 import MissionCard from "@/components/app/MissionCard";
 import ProviderBottomNav from "@/components/app/ProviderBottomNav";
 import NotificationBell from "@/components/app/NotificationBell";
 import logo from "@/assets/linkeco-logo.png";
 import { toast } from "@/hooks/use-toast";
 
+const serviceLabels: Record<string, string> = {
+  fosse_septique: "Vidange fosse septique",
+  latrines: "Vidange latrines",
+  urgence: "Intervention urgente",
+  curage: "Curage canalisation",
+};
+
 const ProviderDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { provider, updateProvider, loading: providerLoading } = useMyProvider();
-  const { pendingOrders, activeOrder, loading: ordersLoading, acceptOrder, refuseOrder } = useProviderOrders();
+  const { pendingOrders, activeOrder, completedOrders, loading: ordersLoading, acceptOrder, refuseOrder } = useProviderOrders();
   const { stats, formatPrice, loading: statsLoading } = useProviderStats();
   const { profile } = useProfile();
   const { unreadCount } = useNotifications();
   const { getCurrentPosition } = useGeolocation({ enableTracking: provider?.is_online });
+  const { soundEnabled, toggleSound, playSound, initializeAudio } = useNotificationSound();
   
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const prevPendingCountRef = useRef(pendingOrders.length);
 
   // Redirect to register if not a provider
   useEffect(() => {
@@ -36,16 +45,13 @@ const ProviderDashboard = () => {
     }
   }, [provider, providerLoading, user, navigate]);
 
-  // Show banner for active order instead of auto-redirecting
-  // This allows the provider to still navigate around the app
-
-  // Play sound on new mission or new notification
+  // Play sound when new missions arrive
   useEffect(() => {
-    if ((pendingOrders.length > 0 || unreadCount > 0) && soundEnabled && provider?.is_online) {
-      // Could add actual sound here
-      console.log("New mission or notification available!");
+    if (pendingOrders.length > prevPendingCountRef.current && soundEnabled && provider?.is_online) {
+      playSound();
     }
-  }, [pendingOrders.length, unreadCount, soundEnabled, provider?.is_online]);
+    prevPendingCountRef.current = pendingOrders.length;
+  }, [pendingOrders.length, soundEnabled, provider?.is_online, playSound]);
 
   const handleToggleOnline = async (online: boolean) => {
     setIsUpdatingStatus(true);
@@ -134,7 +140,10 @@ const ProviderDashboard = () => {
           <img src={logo} alt="Link'eco" className="h-10" />
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={() => {
+                initializeAudio();
+                toggleSound();
+              }}
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 soundEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               }`}
@@ -279,23 +288,38 @@ const ProviderDashboard = () => {
           </button>
         </div>
         
-        {stats.todayMissions > 0 ? (
+        {completedOrders.length > 0 ? (
           <div className="space-y-3">
-            {Array.from({ length: Math.min(stats.todayMissions, 3) }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-card border border-border rounded-xl p-4 flex items-center gap-4"
-              >
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Check className="w-5 h-5 text-primary" />
+            {completedOrders.slice(0, 3).map((order) => {
+              const completedDate = order.completed_at ? new Date(order.completed_at) : null;
+              const isToday = completedDate && 
+                completedDate.toDateString() === new Date().toDateString();
+              const dateLabel = isToday 
+                ? "Aujourd'hui" 
+                : completedDate?.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) || "";
+              
+              return (
+                <div
+                  key={order.id}
+                  className="bg-card border border-border rounded-xl p-4 flex items-center gap-4"
+                >
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Check className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">
+                      {serviceLabels[order.service_type] || order.service_type}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {order.address?.split(",")[0]} • {dateLabel}
+                    </p>
+                  </div>
+                  <span className="font-display font-semibold text-primary">
+                    {formatPrice(order.final_price || 0)}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">Vidange fosse septique</p>
-                  <p className="text-sm text-muted-foreground">Dakar • Aujourd'hui</p>
-                </div>
-                <span className="font-display font-semibold text-primary">25 000 F</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-card border border-border rounded-xl p-6 text-center">
