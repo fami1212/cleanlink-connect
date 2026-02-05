@@ -14,6 +14,7 @@ interface UseGeolocationOptions {
   enableTracking?: boolean;
   updateInterval?: number; // in milliseconds
   highAccuracy?: boolean;
+  distanceFilter?: number; // minimum distance in meters to trigger update
 }
 
 export const useGeolocation = (options: UseGeolocationOptions = {}) => {
@@ -21,6 +22,7 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
     enableTracking = false,
     updateInterval = 30000, // 30 seconds default
     highAccuracy = true,
+    distanceFilter = 10, // 10 meters default
   } = options;
 
   const { provider, updateProvider } = useMyProvider();
@@ -29,6 +31,26 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
   const [loading, setLoading] = useState(false);
   const watchIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPositionRef = useRef<Position | null>(null);
+
+  // Check if position has moved enough to warrant an update
+  const hasMovedEnough = useCallback((newPos: Position): boolean => {
+    if (!lastPositionRef.current) return true;
+    
+    const R = 6371000; // Earth's radius in meters
+    const dLat = ((newPos.latitude - lastPositionRef.current.latitude) * Math.PI) / 180;
+    const dLng = ((newPos.longitude - lastPositionRef.current.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lastPositionRef.current.latitude * Math.PI) / 180) *
+        Math.cos((newPos.latitude * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    return distance >= distanceFilter;
+  }, [distanceFilter]);
 
   // Get current position once
   const getCurrentPosition = useCallback(async () => {
@@ -113,7 +135,7 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
     }
   }, [provider?.id, getCurrentPosition]);
 
-  // Start continuous tracking
+  // Start continuous tracking with smart updates
   const startTracking = useCallback(async () => {
     if (watchIdRef.current) return;
 
@@ -126,20 +148,28 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
             return;
           }
           if (pos) {
-            setPosition({
+            const newPosition: Position = {
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
               accuracy: pos.coords.accuracy,
               timestamp: pos.timestamp,
-            });
+            };
+            
+            // Only update if moved enough (saves battery and reduces noise)
+            if (hasMovedEnough(newPosition)) {
+              setPosition(newPosition);
+              lastPositionRef.current = newPosition;
+            }
           }
         }
       );
       watchIdRef.current = id;
 
-      // Set up interval to update database
+      // Set up interval to update database (only if position changed)
       intervalRef.current = setInterval(() => {
-        updateProviderPosition();
+        if (position && hasMovedEnough(position)) {
+          updateProviderPosition();
+        }
       }, updateInterval);
 
       // Initial update
@@ -151,26 +181,33 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
       if ("geolocation" in navigator) {
         const watchId = navigator.geolocation.watchPosition(
           (pos) => {
-            setPosition({
+            const newPosition: Position = {
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
               accuracy: pos.coords.accuracy,
               timestamp: pos.timestamp,
-            });
+            };
+            
+            if (hasMovedEnough(newPosition)) {
+              setPosition(newPosition);
+              lastPositionRef.current = newPosition;
+            }
           },
           (err) => setError(err.message),
-          { enableHighAccuracy: highAccuracy }
+          { enableHighAccuracy: highAccuracy, maximumAge: 10000 }
         );
         watchIdRef.current = String(watchId);
 
         intervalRef.current = setInterval(() => {
-          updateProviderPosition();
+          if (position) {
+            updateProviderPosition();
+          }
         }, updateInterval);
 
         updateProviderPosition();
       }
     }
-  }, [highAccuracy, updateInterval, updateProviderPosition]);
+  }, [highAccuracy, updateInterval, updateProviderPosition, hasMovedEnough, position]);
 
   // Stop tracking
   const stopTracking = useCallback(async () => {
