@@ -11,13 +11,17 @@ import {
   Shield,
   LogOut,
   Camera,
-  Loader2
+  Loader2,
+  Star,
+  Zap
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
 import { useProfile } from "@/hooks/useProfile";
 import { useAvatarUpload } from "@/hooks/useAvatarUpload";
+import { useProviderStats } from "@/hooks/useProviderStats";
 import ProviderBottomNav from "@/components/app/ProviderBottomNav";
 import { toast } from "@/hooks/use-toast";
 
@@ -27,6 +31,7 @@ const ProviderProfile = () => {
   const { provider, updateProvider, loading } = useMyProvider();
   const { profile, updateProfile } = useProfile();
   const { uploadAvatar, uploading: avatarUploading } = useAvatarUpload();
+  const { stats, formatPrice } = useProviderStats();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -91,7 +96,11 @@ const ProviderProfile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <motion.div
+          className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
       </div>
     );
   }
@@ -103,30 +112,48 @@ const ProviderProfile = () => {
     .toUpperCase() || user?.email?.[0]?.toUpperCase() || "P";
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
       {/* Header */}
-      <div className="bg-card safe-area-top">
+      <motion.div 
+        className="bg-card safe-area-top shadow-sm"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+      >
         <div className="flex items-center gap-3 p-4">
-          <button
+          <motion.button
             onClick={() => navigate("/app/provider")}
             className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="font-display text-lg font-semibold text-foreground">
+          </motion.button>
+          <h1 className="font-display text-lg font-bold text-foreground">
             Mon profil prestataire
           </h1>
         </div>
-      </div>
+      </motion.div>
 
       {/* Profile header */}
-      <div className="px-4 py-6">
+      <motion.div 
+        className="px-4 py-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
         <div className="flex items-center gap-4 mb-6">
-          <div className="relative">
-            <button
+          <motion.div 
+            className="relative"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+          >
+            <motion.button
               onClick={handleAvatarClick}
               disabled={avatarUploading}
-              className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden"
+              className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {avatarUploading ? (
                 <Loader2 className="w-8 h-8 text-white animate-spin" />
@@ -135,9 +162,9 @@ const ProviderProfile = () => {
               ) : (
                 <span className="text-2xl font-bold text-white">{initials}</span>
               )}
-            </button>
-            <div className="absolute bottom-0 right-0 w-7 h-7 bg-card border border-border rounded-full flex items-center justify-center shadow-md">
-              <Camera className="w-3.5 h-3.5 text-muted-foreground" />
+            </motion.button>
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-card border-2 border-background rounded-xl flex items-center justify-center shadow-md">
+              <Camera className="w-4 h-4 text-muted-foreground" />
             </div>
             <input
               ref={fileInputRef}
@@ -146,20 +173,20 @@ const ProviderProfile = () => {
               onChange={handleAvatarChange}
               className="hidden"
             />
-          </div>
+          </motion.div>
           <div className="flex-1">
-            <h2 className="font-display text-xl font-semibold text-foreground">
+            <h2 className="font-display text-xl font-bold text-foreground">
               {provider?.company_name || profile?.full_name || "Prestataire"}
             </h2>
-            <p className="text-muted-foreground">{user?.email}</p>
-            <div className="flex items-center gap-2 mt-1">
+            <p className="text-muted-foreground text-sm">{user?.email}</p>
+            <div className="flex items-center gap-2 mt-2">
               {provider?.is_verified ? (
-                <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded-full">
+                <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-full font-medium">
                   <Shield className="w-3 h-3" />
                   Vérifié
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                   Non vérifié
                 </span>
               )}
@@ -167,17 +194,57 @@ const ProviderProfile = () => {
           </div>
         </div>
 
+        {/* Stats row */}
+        <motion.div 
+          className="flex gap-3 mb-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex-1 bg-card rounded-2xl p-4 border border-border text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="font-display font-bold text-lg text-foreground">{stats.totalMissions}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Missions</p>
+          </div>
+          <div className="flex-1 bg-card rounded-2xl p-4 border border-border text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Star className="w-4 h-4 text-accent" />
+              <span className="font-display font-bold text-lg text-foreground">{stats.averageRating || "-"}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Note</p>
+          </div>
+          <div className="flex-1 bg-card rounded-2xl p-4 border border-border text-center">
+            <span className="font-display font-bold text-lg text-foreground block truncate">{formatPrice(stats.totalEarnings).replace(" FCFA", "")}</span>
+            <p className="text-xs text-muted-foreground">FCFA gagnés</p>
+          </div>
+        </motion.div>
+
         {/* Online status */}
-        <div className="bg-card rounded-xl p-4 border border-border">
+        <motion.div 
+          className={`rounded-2xl p-4 border transition-all ${
+            provider?.is_online 
+              ? "bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20" 
+              : "bg-card border-border"
+          }`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${provider?.is_online ? "bg-primary animate-pulse" : "bg-muted-foreground"}`} />
+              <motion.div 
+                className={`w-4 h-4 rounded-full ${provider?.is_online ? "bg-primary" : "bg-muted-foreground"}`}
+                animate={provider?.is_online ? { scale: [1, 1.2, 1], opacity: [1, 0.7, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
               <div>
                 <p className="font-medium text-foreground">
                   {provider?.is_online ? "En ligne" : "Hors ligne"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {provider?.is_online ? "Vous recevez des missions" : "Vous ne recevez pas de missions"}
+                  {provider?.is_online ? "Vous recevez des missions" : "Activez pour recevoir des missions"}
                 </p>
               </div>
             </div>
@@ -187,17 +254,22 @@ const ProviderProfile = () => {
               disabled={isUpdating}
             />
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Vehicle info */}
-      <div className="px-4 pb-4">
-        <h3 className="font-display font-semibold text-foreground mb-3">
+      <motion.div 
+        className="px-4 pb-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <h3 className="font-display font-bold text-foreground mb-3">
           Véhicule
         </h3>
-        <div className="bg-card rounded-xl border border-border divide-y divide-border">
+        <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
           <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center">
               <Truck className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
@@ -210,8 +282,8 @@ const ProviderProfile = () => {
             </div>
           </div>
           <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-              <span className="text-lg">⛽</span>
+            <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center">
+              <span className="text-xl">⛽</span>
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">Capacité</p>
@@ -223,16 +295,21 @@ const ProviderProfile = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Company info */}
       {provider?.company_name && (
-        <div className="px-4 pb-4">
-          <h3 className="font-display font-semibold text-foreground mb-3">
+        <motion.div 
+          className="px-4 pb-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          <h3 className="font-display font-bold text-foreground mb-3">
             Entreprise
           </h3>
-          <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+          <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
+            <div className="w-11 h-11 bg-secondary/10 rounded-xl flex items-center justify-center">
               <Building2 className="w-5 h-5 text-secondary" />
             </div>
             <div className="flex-1">
@@ -240,85 +317,85 @@ const ProviderProfile = () => {
               <p className="font-medium text-foreground">{provider.company_name}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Menu items */}
-      <div className="px-4 pb-4">
-        <h3 className="font-display font-semibold text-foreground mb-3">
+      <motion.div 
+        className="px-4 pb-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
+        <h3 className="font-display font-bold text-foreground mb-3">
           Paramètres
         </h3>
-        <div className="bg-card rounded-xl border border-border divide-y divide-border">
-          <button
-            onClick={() => navigate("/app/profile/edit")}
-            className="w-full p-4 flex items-center gap-3 text-left"
-          >
-            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-              <Settings className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-foreground">Modifier mon profil</p>
-              <p className="text-sm text-muted-foreground">Informations personnelles</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-
-          <button
-            onClick={() => navigate("/app/provider/documents")}
-            className="w-full p-4 flex items-center gap-3 text-left"
-          >
-            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-              <FileCheck className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-foreground">Documents</p>
-              <p className="text-sm text-muted-foreground">Carte grise, permis</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-
-          <button
-            className="w-full p-4 flex items-center gap-3 text-left"
-          >
-            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-foreground">Zone de travail</p>
-              <p className="text-sm text-muted-foreground">Définir ma zone de couverture</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
+        <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
+          {[
+            { icon: Settings, label: "Modifier mon profil", desc: "Informations personnelles", path: "/app/profile/edit" },
+            { icon: FileCheck, label: "Documents", desc: "Carte grise, permis", path: "/app/provider/documents" },
+            { icon: MapPin, label: "Zone de travail", desc: "Définir ma zone de couverture", path: null },
+          ].map((item, index) => (
+            <motion.button
+              key={item.label}
+              onClick={() => item.path && navigate(item.path)}
+              className="w-full p-4 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
+              whileHover={{ x: 4 }}
+            >
+              <div className="w-11 h-11 bg-muted rounded-xl flex items-center justify-center">
+                <item.icon className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">{item.label}</p>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </motion.button>
+          ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Switch to client mode */}
-      <div className="px-4 pb-4">
-        <button
+      <motion.div 
+        className="px-4 pb-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.45 }}
+      >
+        <motion.button
           onClick={() => navigate("/app")}
-          className="w-full bg-card rounded-xl border border-border p-4 flex items-center gap-3 text-left"
+          className="w-full bg-card rounded-2xl border border-border p-4 flex items-center gap-3 text-left hover:shadow-md transition-shadow"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
         >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <span className="text-lg">👤</span>
+          <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center">
+            <span className="text-xl">👤</span>
           </div>
           <div className="flex-1">
             <p className="font-medium text-foreground">Mode client</p>
             <p className="text-sm text-muted-foreground">Basculer vers l'interface client</p>
           </div>
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Logout */}
-      <div className="px-4 pb-8">
-        <button
+      <motion.div 
+        className="px-4 pb-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <motion.button
           onClick={handleLogout}
-          className="w-full bg-destructive/10 rounded-xl p-4 flex items-center justify-center gap-2 text-destructive font-medium"
+          className="w-full bg-destructive/10 rounded-2xl p-4 flex items-center justify-center gap-2 text-destructive font-medium hover:bg-destructive/20 transition-colors"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
         >
           <LogOut className="w-5 h-5" />
           Déconnexion
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       <ProviderBottomNav />
     </div>

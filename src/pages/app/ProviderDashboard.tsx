@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Star, TrendingUp, Wallet, Volume2, Check } from "lucide-react";
+import { MapPin, Star, TrendingUp, Wallet, Volume2, Check, Zap, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
@@ -38,14 +39,12 @@ const ProviderDashboard = () => {
   const [isAccepting, setIsAccepting] = useState(false);
   const prevPendingCountRef = useRef(pendingOrders.length);
 
-  // Redirect to register if not a provider
   useEffect(() => {
     if (!providerLoading && !provider && user) {
       navigate("/app/provider/register");
     }
   }, [provider, providerLoading, user, navigate]);
 
-  // Play sound when new missions arrive
   useEffect(() => {
     if (pendingOrders.length > prevPendingCountRef.current && soundEnabled && provider?.is_online) {
       playSound();
@@ -57,7 +56,6 @@ const ProviderDashboard = () => {
     setIsUpdatingStatus(true);
     
     if (online) {
-      // Get current position when going online
       try {
         await getCurrentPosition();
       } catch (err) {
@@ -115,7 +113,11 @@ const ProviderDashboard = () => {
   if (loading || !provider) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <motion.div
+          className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
       </div>
     );
   }
@@ -127,54 +129,75 @@ const ProviderDashboard = () => {
     .toUpperCase() || user?.email?.[0]?.toUpperCase() || "P";
 
   const statItems = [
-    { icon: TrendingUp, label: "Missions aujourd'hui", value: String(stats.todayMissions) },
-    { icon: Wallet, label: "Gains aujourd'hui", value: formatPrice(stats.todayEarnings) },
-    { icon: Star, label: "Note moyenne", value: stats.averageRating > 0 ? String(stats.averageRating) : "-" },
+    { icon: TrendingUp, label: "Missions", value: String(stats.todayMissions), color: "primary" },
+    { icon: Wallet, label: "Gains", value: formatPrice(stats.todayEarnings), color: "accent" },
+    { icon: Star, label: "Note", value: stats.averageRating > 0 ? String(stats.averageRating) : "-", color: "secondary" },
   ];
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
       {/* Header */}
-      <div className="bg-card safe-area-top">
+      <motion.div 
+        className="bg-card safe-area-top shadow-sm"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+      >
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-10" />
           <div className="flex items-center gap-3">
-            <button
+            <motion.button
               onClick={() => {
                 initializeAudio();
                 toggleSound();
               }}
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                 soundEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               <Volume2 className="w-5 h-5" />
-            </button>
+            </motion.button>
             <NotificationBell />
-            <button
+            <motion.button
               onClick={() => navigate("/app/provider/profile")}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden"
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden shadow-md"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm font-bold text-primary-foreground">{initials}</span>
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
 
         {/* Online status */}
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+        <motion.div 
+          className="px-4 pb-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
+            provider.is_online 
+              ? "bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20" 
+              : "bg-muted/50 border border-border"
+          }`}>
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${provider.is_online ? "bg-primary animate-pulse" : "bg-muted-foreground"}`} />
+              <motion.div 
+                className={`w-4 h-4 rounded-full ${provider.is_online ? "bg-primary" : "bg-muted-foreground"}`}
+                animate={provider.is_online ? { scale: [1, 1.2, 1], opacity: [1, 0.7, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
               <div>
-                <p className="font-medium text-foreground">
+                <p className="font-semibold text-foreground">
                   {provider.is_online ? "En ligne" : "Hors ligne"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {provider.is_online ? "Prêt à recevoir des missions" : "Vous ne recevez pas de missions"}
+                  {provider.is_online ? "Prêt à recevoir des missions" : "Activez pour recevoir des missions"}
                 </p>
               </div>
             </div>
@@ -184,85 +207,152 @@ const ProviderDashboard = () => {
               disabled={isUpdatingStatus}
             />
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Stats */}
-      <div className="px-4 py-4">
+      <motion.div 
+        className="px-4 py-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
         <div className="grid grid-cols-3 gap-3">
-          {statItems.map((stat) => (
-            <button
+          {statItems.map((stat, index) => (
+            <motion.button
               key={stat.label}
               onClick={() => {
                 if (stat.icon === Wallet) navigate("/app/provider/earnings");
                 if (stat.icon === Star) navigate("/app/provider/reviews");
               }}
-              className="bg-card border border-border rounded-xl p-3 text-center hover:border-primary/50 transition-colors"
+              className={`bg-card border rounded-2xl p-4 text-center hover:shadow-md transition-all ${
+                stat.color === "primary" ? "border-primary/20 hover:border-primary/40" :
+                stat.color === "accent" ? "border-accent/20 hover:border-accent/40" :
+                "border-secondary/20 hover:border-secondary/40"
+              }`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 + index * 0.1 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <stat.icon className="w-5 h-5 text-primary mx-auto mb-1" />
+              <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${
+                stat.color === "primary" ? "bg-primary/10" :
+                stat.color === "accent" ? "bg-accent/10" : "bg-secondary/10"
+              }`}>
+                <stat.icon className={`w-5 h-5 ${
+                  stat.color === "primary" ? "text-primary" :
+                  stat.color === "accent" ? "text-accent" : "text-secondary"
+                }`} />
+              </div>
               <p className="font-display font-bold text-foreground text-sm truncate">{stat.value}</p>
-              <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
-            </button>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Active mission banner */}
-      {activeOrder && (
-        <div className="px-4 pb-4">
-          <button
-            onClick={() => navigate("/app/provider/mission")}
-            className="w-full bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center gap-3"
+      <AnimatePresence>
+        {activeOrder && (
+          <motion.div 
+            className="px-4 pb-4"
+            initial={{ opacity: 0, scale: 0.95, height: 0 }}
+            animate={{ opacity: 1, scale: 1, height: "auto" }}
+            exit={{ opacity: 0, scale: 0.95, height: 0 }}
           >
-            <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
-              <span className="text-lg">🚛</span>
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-semibold text-foreground">Mission en cours</p>
-              <p className="text-sm text-muted-foreground capitalize">
-                {activeOrder.status === "accepted" ? "Acceptée" : "En route"}
-              </p>
-            </div>
-            <span className="text-accent font-medium">Voir →</span>
-          </button>
-        </div>
-      )}
-      <div className="px-4">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-3">
-          {pendingOrders.length > 0 ? "Nouvelles missions" : "Missions disponibles"}
+            <motion.button
+              onClick={() => navigate("/app/provider/mission")}
+              className="w-full bg-gradient-to-r from-accent to-primary rounded-2xl p-4 flex items-center gap-4 shadow-lg"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <motion.div 
+                className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Zap className="w-6 h-6 text-white" />
+              </motion.div>
+              <div className="flex-1 text-left">
+                <p className="font-semibold text-white">Mission en cours</p>
+                <p className="text-sm text-white/80 capitalize">
+                  {activeOrder.status === "accepted" ? "Acceptée - En attente" : "En route vers le client"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 text-white font-medium">
+                <span>Voir</span>
+                <motion.span
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  →
+                </motion.span>
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Available missions */}
+      <motion.div 
+        className="px-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <h2 className="font-display text-lg font-bold text-foreground mb-3">
+          {pendingOrders.length > 0 ? `Nouvelles missions (${pendingOrders.length})` : "Missions disponibles"}
         </h2>
 
         {provider.is_online ? (
           pendingOrders.length > 0 ? (
             <div className="space-y-4">
-              {pendingOrders.slice(0, 3).map((order) => (
-                <div key={order.id} className="animate-pulse-slow">
+              {pendingOrders.slice(0, 3).map((order, index) => (
+                <motion.div 
+                  key={order.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.35 + index * 0.1 }}
+                >
                   <MissionCard
                     order={order}
                     onAccept={() => handleAcceptMission(order.id)}
                     onRefuse={() => handleRefuseMission(order.id)}
                     isLoading={isAccepting}
                   />
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
-            <div className="bg-card border border-border rounded-xl p-8 text-center">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <motion.div 
+              className="bg-card border border-border rounded-2xl p-8 text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <motion.div 
+                className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4"
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
                 <MapPin className="w-8 h-8 text-muted-foreground" />
-              </div>
+              </motion.div>
               <h3 className="font-display font-semibold text-foreground mb-2">
                 Aucune mission disponible
               </h3>
               <p className="text-sm text-muted-foreground">
                 Restez en ligne pour recevoir de nouvelles missions
               </p>
-            </div>
+            </motion.div>
           )
         ) : (
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <MapPin className="w-8 h-8 text-muted-foreground" />
+          <motion.div 
+            className="bg-card border border-dashed border-border rounded-2xl p-8 text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="font-display font-semibold text-foreground mb-2">
               Vous êtes hors ligne
@@ -270,14 +360,19 @@ const ProviderDashboard = () => {
             <p className="text-sm text-muted-foreground">
               Activez votre statut pour recevoir des missions
             </p>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       {/* Recent missions */}
-      <div className="px-4 py-6">
+      <motion.div 
+        className="px-4 py-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg font-semibold text-foreground">
+          <h2 className="font-display text-lg font-bold text-foreground">
             Missions récentes
           </h2>
           <button
@@ -290,7 +385,7 @@ const ProviderDashboard = () => {
         
         {completedOrders.length > 0 ? (
           <div className="space-y-3">
-            {completedOrders.slice(0, 3).map((order) => {
+            {completedOrders.slice(0, 3).map((order, index) => {
               const completedDate = order.completed_at ? new Date(order.completed_at) : null;
               const isToday = completedDate && 
                 completedDate.toDateString() === new Date().toDateString();
@@ -299,34 +394,38 @@ const ProviderDashboard = () => {
                 : completedDate?.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) || "";
               
               return (
-                <div
+                <motion.div
                   key={order.id}
-                  className="bg-card border border-border rounded-xl p-4 flex items-center gap-4"
+                  className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.45 + index * 0.1 }}
+                  whileHover={{ x: 4 }}
                 >
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center">
                     <Check className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">
                       {serviceLabels[order.service_type] || order.service_type}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground truncate">
                       {order.address?.split(",")[0]} • {dateLabel}
                     </p>
                   </div>
-                  <span className="font-display font-semibold text-primary">
+                  <span className="font-display font-bold text-primary text-sm">
                     {formatPrice(order.final_price || 0)}
                   </span>
-                </div>
+                </motion.div>
               );
             })}
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-xl p-6 text-center">
+          <div className="bg-card border border-border rounded-2xl p-6 text-center">
             <p className="text-muted-foreground">Pas de missions récentes</p>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <ProviderBottomNav />
     </div>
