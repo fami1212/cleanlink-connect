@@ -1,5 +1,4 @@
 import { Droplets, Home, AlertTriangle, Wrench, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -10,156 +9,105 @@ const Services = () => {
     {
       icon: Droplets,
       title: "Vidange fosse septique",
-      description: "Service complet de vidange pour maisons et concessions. Intervention rapide et professionnelle.",
-      price: "À partir de 25 000 FCFA",
+      description: "Service complet pour maisons et concessions. Intervention rapide par des professionnels certifiés.",
+      price: "25 000 FCFA",
       popular: true,
-      gradient: "from-primary to-linkeco-green-light",
     },
     {
       icon: Home,
       title: "Vidange latrines",
       description: "Nettoyage et vidange de latrines traditionnelles avec équipements adaptés.",
-      price: "À partir de 15 000 FCFA",
+      price: "15 000 FCFA",
       popular: false,
-      gradient: "from-secondary to-accent",
     },
     {
       icon: AlertTriangle,
       title: "Urgence débordement",
-      description: "Intervention d'urgence 24h/24 en cas de débordement ou de situation critique.",
+      description: "Intervention d'urgence 24h/24 en cas de débordement ou situation critique.",
       price: "Sur devis",
       popular: false,
-      gradient: "from-orange-500 to-red-500",
     },
     {
       icon: Wrench,
       title: "Curage canalisations",
-      description: "Débouchage et curage de vos canalisations pour un assainissement optimal.",
-      price: "À partir de 20 000 FCFA",
+      description: "Débouchage et curage complet pour un assainissement optimal.",
+      price: "20 000 FCFA",
       popular: false,
-      gradient: "from-accent to-secondary",
     },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.5 }
-    },
-  };
-
   return (
-    <section id="services" className="py-24 md:py-32 bg-muted/30 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-      <div className="container relative">
-        {/* Section header */}
-        <motion.div 
-          className="text-center max-w-2xl mx-auto mb-16"
+    <section id="services" className="py-24 md:py-32 bg-background relative">
+      <div className="container">
+        <motion.div
+          className="max-w-xl mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
         >
-          <motion.span 
-            className="inline-flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider mb-4 bg-primary/10 px-4 py-2 rounded-full"
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-          >
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          <span className="text-sm font-semibold text-primary uppercase tracking-widest mb-3 block">
             Nos Services
-          </motion.span>
-          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-5">
-            Des solutions pour{" "}
-            <span className="text-gradient">chaque besoin</span>
+          </span>
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
+            Tout l'assainissement,{" "}
+            <span className="text-gradient">simplifié.</span>
           </h2>
-          <p className="text-muted-foreground text-lg leading-relaxed">
-            Des services professionnels d'assainissement adaptés aux réalités sénégalaises, 
-            avec des tarifs transparents.
+          <p className="text-muted-foreground text-lg">
+            Des tarifs affichés, des pros vérifiés, un suivi en direct.
           </p>
         </motion.div>
 
-        {/* Services grid */}
-        <motion.div 
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          {services.map((service) => (
-            <motion.div
+        <div className="grid md:grid-cols-2 gap-4">
+          {services.map((service, index) => (
+            <motion.button
               key={service.title}
-              variants={cardVariants}
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className={`group relative bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ${
-                service.popular ? "ring-2 ring-primary" : "border border-border"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ y: -4 }}
+              onClick={() => navigate("/app/order", { state: { service: service.title } })}
+              className={`group relative text-left p-6 rounded-3xl border transition-all duration-300 ${
+                service.popular
+                  ? "bg-primary text-primary-foreground border-primary shadow-elevated"
+                  : "bg-card border-border hover:border-primary/30 hover:shadow-card-hover"
               }`}
             >
               {service.popular && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary to-accent py-1.5 text-center">
-                  <span className="text-primary-foreground text-xs font-bold uppercase tracking-wider">
-                    ⭐ Plus demandé
-                  </span>
-                </div>
+                <span className="absolute top-4 right-4 text-xs font-bold uppercase bg-accent text-accent-foreground px-3 py-1 rounded-full">
+                  Populaire
+                </span>
               )}
 
-              <div className={`p-6 ${service.popular ? "pt-10" : ""}`}>
-                {/* Icon */}
-                <motion.div 
-                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${service.gradient} flex items-center justify-center mb-5 shadow-lg`}
-                  whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.5 } }}
-                >
-                  <service.icon className="w-8 h-8 text-white" />
-                </motion.div>
-
-                <h3 className="font-display text-xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-                  {service.title}
-                </h3>
-
-                <p className="text-muted-foreground text-sm mb-5 leading-relaxed line-clamp-3">
-                  {service.description}
-                </p>
-
-                <div className="flex items-center justify-between pt-4 border-t border-border">
-                  <div>
-                    <p className="text-xs text-muted-foreground">À partir de</p>
-                    <p className="font-display font-bold text-primary">
-                      {service.price}
-                    </p>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="group/btn"
-                    onClick={() => navigate("/app/order", { state: { service: service.title } })}
-                  >
-                    <span className="mr-1">Commander</span>
-                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </Button>
-                </div>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 ${
+                service.popular ? "bg-white/15" : "bg-primary/8"
+              }`}>
+                <service.icon className={`w-6 h-6 ${service.popular ? "text-white" : "text-primary"}`} />
               </div>
 
-              {/* Hover gradient overlay */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${service.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none`} />
-            </motion.div>
+              <h3 className={`font-display text-xl font-bold mb-2 ${service.popular ? "" : "text-foreground"}`}>
+                {service.title}
+              </h3>
+              <p className={`text-sm mb-6 leading-relaxed ${service.popular ? "text-white/70" : "text-muted-foreground"}`}>
+                {service.description}
+              </p>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-xs ${service.popular ? "text-white/50" : "text-muted-foreground"}`}>À partir de</p>
+                  <p className={`font-display font-bold text-lg ${service.popular ? "" : "text-foreground"}`}>
+                    {service.price}
+                  </p>
+                </div>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:translate-x-1 ${
+                  service.popular ? "bg-white/15" : "bg-muted"
+                }`}>
+                  <ArrowRight className={`w-5 h-5 ${service.popular ? "text-white" : "text-muted-foreground"}`} />
+                </div>
+              </div>
+            </motion.button>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Bell, CreditCard, FileText, HelpCircle, LogOut, ChevronRight, Settings, RefreshCw, Heart, Shield } from "lucide-react";
+import { User, Bell, CreditCard, FileText, HelpCircle, LogOut, ChevronRight, Settings, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/app/BottomNav";
 import { Switch } from "@/components/ui/switch";
@@ -22,8 +22,6 @@ const Profile = () => {
 
   const isProvider = roles.includes("provider");
   const completedOrders = orders.filter(o => o.status === "completed").length;
-  const averageRating = orders.filter(o => o.rating).reduce((acc, o) => acc + (o.rating || 0), 0) / 
-    (orders.filter(o => o.rating).length || 1);
 
   const handleLogout = async () => {
     await signOut();
@@ -36,12 +34,7 @@ const Profile = () => {
       setIsTogglingProvider(true);
       const { error } = await addRole("provider");
       setIsTogglingProvider(false);
-      
-      if (error) {
-        toast.error("Erreur lors de l'activation");
-        return;
-      }
-      
+      if (error) { toast.error("Erreur lors de l'activation"); return; }
       toast.success("Mode prestataire activé!");
       navigate("/app/provider");
     } else if (checked && isProvider) {
@@ -50,218 +43,125 @@ const Profile = () => {
   };
 
   const menuItems = [
-    { icon: User, label: "Informations personnelles", path: "/app/profile/edit", badge: null, color: "primary" },
-    { icon: FileText, label: "Historique des commandes", path: "/app/profile/history", badge: null, color: "secondary" },
-    { icon: CreditCard, label: "Moyens de paiement", path: "/app/profile/payments", badge: null, color: "accent" },
-    { icon: Heart, label: "Favoris", path: "/app/favorites", badge: null, color: "primary" },
-    { icon: Bell, label: "Notifications", path: "/app/notifications", badge: unreadCount > 0 ? unreadCount : null, color: "secondary" },
-    { icon: HelpCircle, label: "Aide et support", path: "/app/help", badge: null, color: "accent" },
-    { icon: Settings, label: "Paramètres", path: "/app/settings", badge: null, color: "primary" },
+    { icon: User, label: "Informations personnelles", path: "/app/profile/edit" },
+    { icon: FileText, label: "Historique des commandes", path: "/app/profile/history" },
+    { icon: CreditCard, label: "Moyens de paiement", path: "/app/profile/payments" },
+    { icon: Heart, label: "Favoris", path: "/app/favorites" },
+    { icon: Bell, label: "Notifications", path: "/app/notifications", badge: unreadCount > 0 ? unreadCount : null },
+    { icon: HelpCircle, label: "Aide et support", path: "/app/help" },
+    { icon: Settings, label: "Paramètres", path: "/app/settings" },
   ];
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        >
-          <RefreshCw className="w-8 h-8 text-primary" />
-        </motion.div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div className="w-10 h-10 rounded-full border-3 border-primary border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
       </div>
     );
   }
 
-  if (!user) {
-    navigate("/app/auth");
-    return null;
-  }
+  if (!user) { navigate("/app/auth"); return null; }
 
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Utilisateur";
-  const phone = profile?.phone || user.phone || "+221 XX XXX XX XX";
-  const initials = displayName
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const phone = profile?.phone || user.phone || "";
+  const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
-      {/* Header */}
-      <motion.div 
-        className="bg-gradient-to-br from-primary via-linkeco-green-light to-accent safe-area-top relative overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-        
-        <div className="p-6 pt-8 text-center relative z-10">
-          <motion.div 
-            className="relative inline-block"
+    <div className="min-h-screen bg-background pb-24">
+      {/* Profile header */}
+      <div className="bg-primary safe-area-top">
+        <div className="px-6 pt-10 pb-8 text-center">
+          <motion.div
+            className="w-20 h-20 rounded-2xl bg-white mx-auto mb-4 flex items-center justify-center overflow-hidden shadow-lg"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
           >
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl overflow-hidden ring-4 ring-white/20">
-              {profile?.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt={displayName} 
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-3xl font-bold text-primary">{initials}</span>
-              )}
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-2 border-white shadow-md">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-primary">{initials}</span>
+            )}
           </motion.div>
-          
-          <motion.h1 
-            className="font-display text-2xl font-bold text-primary-foreground mb-1"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            {displayName}
-          </motion.h1>
-          <motion.p 
-            className="text-sm text-primary-foreground/80 mb-5"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            {phone}
-          </motion.p>
-          
-          <motion.div 
-            className="flex justify-center gap-8"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
+          <h1 className="font-display text-xl font-bold text-primary-foreground mb-1">{displayName}</h1>
+          {phone && <p className="text-sm text-primary-foreground/60">{phone}</p>}
+          <div className="flex justify-center gap-6 mt-5">
             <div className="text-center">
-              <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-2 mx-auto">
-                <p className="font-display font-bold text-xl text-primary-foreground">
-                  {completedOrders}
-                </p>
-              </div>
-              <p className="text-xs text-primary-foreground/70">Commandes</p>
+              <p className="font-display font-bold text-2xl text-primary-foreground">{completedOrders}</p>
+              <p className="text-xs text-primary-foreground/50">Commandes</p>
             </div>
-            <div className="text-center">
-              <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-2 mx-auto">
-                <p className="font-display font-bold text-xl text-primary-foreground">
-                  {averageRating.toFixed(1)}
-                </p>
-              </div>
-              <p className="text-xs text-primary-foreground/70">Note moyenne</p>
-            </div>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Content */}
-      <div className="p-4 -mt-4 relative z-10">
+      <div className="p-4 space-y-3 -mt-3 relative z-10">
         {/* Provider toggle */}
-        <motion.div 
-          className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-lg"
-          initial={{ opacity: 0, y: 20 }}
+        <motion.div
+          className="bg-card border border-border rounded-2xl p-4"
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
                 <span className="text-lg">🚛</span>
               </div>
-              <h3 className="font-display font-semibold text-foreground">
-                {isProvider ? "Accéder au dashboard" : "Devenir prestataire"}
-              </h3>
+              <div>
+                <p className="font-display font-semibold text-foreground text-sm">
+                  {isProvider ? "Dashboard prestataire" : "Devenir prestataire"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isProvider ? "Accédez à vos missions" : "Gagnez de l'argent"}
+                </p>
+              </div>
             </div>
-            <Switch 
-              checked={isProvider}
-              onCheckedChange={handleToggleProvider}
-              disabled={isTogglingProvider}
-            />
+            <Switch checked={isProvider} onCheckedChange={handleToggleProvider} disabled={isTogglingProvider} />
           </div>
-          <p className="text-sm text-muted-foreground pl-13">
-            {isProvider 
-              ? "Basculez vers le dashboard prestataire"
-              : "Activez pour recevoir des missions et gagner de l'argent"
-            }
-          </p>
         </motion.div>
 
         {/* Menu */}
-        <motion.div 
-          className="bg-card border border-border rounded-2xl overflow-hidden shadow-lg"
-          initial={{ opacity: 0, y: 20 }}
+        <motion.div
+          className="bg-card border border-border rounded-2xl overflow-hidden"
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.05 }}
         >
           {menuItems.map((item, index) => (
-            <motion.button
+            <button
               key={item.label}
               onClick={() => navigate(item.path)}
-              className={`w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors ${
+              className={`w-full flex items-center gap-3.5 px-4 py-3.5 hover:bg-muted/50 transition-colors text-left ${
                 index !== menuItems.length - 1 ? "border-b border-border" : ""
               }`}
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.99 }}
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
-                item.color === "primary" ? "bg-primary/10" :
-                item.color === "secondary" ? "bg-secondary/10" : "bg-accent/10"
-              }`}>
-                <item.icon className={`w-5 h-5 ${
-                  item.color === "primary" ? "text-primary" :
-                  item.color === "secondary" ? "text-secondary" : "text-accent"
-                }`} />
+              <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                <item.icon className="w-4.5 h-4.5 text-muted-foreground" />
               </div>
-              <span className="flex-1 text-left font-medium text-foreground">
-                {item.label}
-              </span>
+              <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
               {item.badge && (
-                <span className="w-6 h-6 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
                   {item.badge > 9 ? "9+" : item.badge}
                 </span>
               )}
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </motion.button>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
           ))}
         </motion.div>
 
         {/* Logout */}
         <motion.button
           onClick={handleLogout}
-          className="w-full flex items-center gap-4 p-4 mt-4 bg-destructive/10 rounded-2xl hover:bg-destructive/20 transition-colors"
-          initial={{ opacity: 0, y: 20 }}
+          className="w-full flex items-center justify-center gap-2 p-4 bg-destructive/8 rounded-2xl text-destructive font-medium text-sm hover:bg-destructive/15 transition-colors"
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          transition={{ delay: 0.1 }}
         >
-          <div className="w-11 h-11 bg-destructive/20 rounded-xl flex items-center justify-center">
-            <LogOut className="w-5 h-5 text-destructive" />
-          </div>
-          <span className="flex-1 text-left font-medium text-destructive">
-            Se déconnecter
-          </span>
+          <LogOut className="w-4 h-4" />
+          Se déconnecter
         </motion.button>
 
-        {/* Version */}
-        <motion.p 
-          className="text-center text-xs text-muted-foreground mt-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
+        <p className="text-center text-xs text-muted-foreground pt-4">
           Link'eco v1.0.0 • Dakar, Sénégal
-        </motion.p>
+        </p>
       </div>
 
       <BottomNav />

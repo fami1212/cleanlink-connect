@@ -1,4 +1,4 @@
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ServiceCardProps {
@@ -14,49 +14,27 @@ const ServiceCard = ({ icon: Icon, title, description, onClick, variant = "defau
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all duration-200 active:scale-[0.98]",
+        "w-full flex items-center gap-3.5 p-4 rounded-2xl text-left transition-all duration-200 active:scale-[0.98]",
         variant === "featured"
-          ? "bg-gradient-to-r from-primary to-linkeco-green-light text-primary-foreground shadow-lg"
-          : "bg-card border border-border hover:border-primary/30 hover:shadow-md"
+          ? "bg-primary text-primary-foreground shadow-green"
+          : "bg-card border border-border hover:border-primary/20 hover:shadow-card"
       )}
     >
-      <div
-        className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-          variant === "featured"
-            ? "bg-primary-foreground/20"
-            : "bg-primary/10"
-        )}
-      >
-        <Icon className={cn("w-6 h-6", variant === "featured" ? "text-primary-foreground" : "text-primary")} />
+      <div className={cn(
+        "w-11 h-11 rounded-xl flex items-center justify-center shrink-0",
+        variant === "featured" ? "bg-white/15" : "bg-primary/8"
+      )}>
+        <Icon className={cn("w-5 h-5", variant === "featured" ? "text-primary-foreground" : "text-primary")} />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className={cn(
-          "font-display font-semibold text-base truncate",
-          variant === "featured" ? "text-primary-foreground" : "text-foreground"
-        )}>
+        <h3 className={cn("font-display font-semibold text-[15px]", variant === "featured" ? "text-primary-foreground" : "text-foreground")}>
           {title}
         </h3>
-        <p className={cn(
-          "text-sm truncate",
-          variant === "featured" ? "text-primary-foreground/80" : "text-muted-foreground"
-        )}>
+        <p className={cn("text-xs", variant === "featured" ? "text-primary-foreground/70" : "text-muted-foreground")}>
           {description}
         </p>
       </div>
-      <div className={cn(
-        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-        variant === "featured" ? "bg-primary-foreground/20" : "bg-muted"
-      )}>
-        <svg
-          className={cn("w-4 h-4", variant === "featured" ? "text-primary-foreground" : "text-muted-foreground")}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
+      <ChevronRight className={cn("w-4 h-4 shrink-0", variant === "featured" ? "text-primary-foreground/50" : "text-muted-foreground")} />
     </button>
   );
 };
