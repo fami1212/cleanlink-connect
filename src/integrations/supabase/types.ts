@@ -204,6 +204,7 @@ export type Database = {
           user_id: string
           vehicle_registration_url: string | null
           vehicle_type: string | null
+          work_zone_radius: number | null
         }
         Insert: {
           capacity_liters?: number | null
@@ -222,6 +223,7 @@ export type Database = {
           user_id: string
           vehicle_registration_url?: string | null
           vehicle_type?: string | null
+          work_zone_radius?: number | null
         }
         Update: {
           capacity_liters?: number | null
@@ -240,6 +242,7 @@ export type Database = {
           user_id?: string
           vehicle_registration_url?: string | null
           vehicle_type?: string | null
+          work_zone_radius?: number | null
         }
         Relationships: []
       }
