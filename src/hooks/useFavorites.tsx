@@ -2,19 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export interface Provider {
-  id: string;
-  user_id: string;
-  company_name: string | null;
-  is_online: boolean | null;
-  is_verified: boolean | null;
-  vehicle_type: string | null;
-  capacity_liters: number | null;
-  rating: number | null;
-  total_missions: number | null;
-  latitude: number | null;
-  longitude: number | null;
-}
+import { Provider } from "./useProviders";
 
 export interface Favorite {
   id: string;
