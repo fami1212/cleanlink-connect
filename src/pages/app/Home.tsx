@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, ArrowRight } from "lucide-react";
+import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, ArrowRight, MapPin, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
 import NotificationBell from "@/components/app/NotificationBell";
+import Map from "@/components/app/Map";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
 import { useProfile } from "@/hooks/useProfile";
+import { useUserRole } from "@/hooks/useUserRole";
 import logo from "@/assets/linkeco-logo.png";
 
 const Home = () => {
@@ -15,10 +17,39 @@ const Home = () => {
   const { user, loading } = useAuth();
   const { currentOrder } = useOrders();
   const { profile } = useProfile();
+  const { roles } = useUserRole();
+  const [userLat, setUserLat] = useState(14.6937);
+  const [userLng, setUserLng] = useState(-17.4441);
+  const [userAddress, setUserAddress] = useState("");
+  const [locating, setLocating] = useState(true);
+
+  const isProvider = roles.includes("provider");
 
   useEffect(() => {
     if (!loading && !user) navigate("/app/auth");
   }, [user, loading, navigate]);
+
+  // Get user location on mount
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          setUserLat(pos.coords.latitude);
+          setUserLng(pos.coords.longitude);
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+            const data = await res.json();
+            setUserAddress(data.display_name?.split(",").slice(0, 3).join(",") || "Votre position");
+          } catch { setUserAddress("Votre position"); }
+          setLocating(false);
+        },
+        () => setLocating(false),
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setLocating(false);
+    }
+  }, []);
 
   const services = [
     { icon: Droplets, title: "Vidange fosse septique", description: "Service rapide et professionnel", featured: true },
@@ -45,10 +76,18 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="bg-card safe-area-top border-b border-border">
+      <div className="bg-card safe-area-top border-b border-border sticky top-0 z-20">
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-9" />
           <div className="flex items-center gap-2">
+            {isProvider && (
+              <button
+                onClick={() => navigate("/app/provider")}
+                className="px-3 py-1.5 rounded-lg bg-accent/15 text-accent text-xs font-semibold hover:bg-accent/25 transition-colors"
+              >
+                🚛 Mode prestataire
+              </button>
+            )}
             <NotificationBell />
             <button
               onClick={() => navigate("/app/profile")}
@@ -65,7 +104,7 @@ const Home = () => {
       </div>
 
       {/* Greeting */}
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-4 pt-6 pb-3">
         <motion.p className="text-sm text-muted-foreground mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           Bonjour 👋
         </motion.p>
@@ -78,6 +117,34 @@ const Home = () => {
           {displayName}
         </motion.h1>
       </div>
+
+      {/* User location map */}
+      <motion.div
+        className="px-4 pb-4"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+      >
+        <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
+          <Map
+            initialLat={userLat}
+            initialLng={userLng}
+            interactive={false}
+            className="h-40"
+          />
+          <div className="bg-card p-3 flex items-center gap-3">
+            <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
+              <Navigation className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground">Votre position</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {locating ? "Localisation en cours..." : userAddress || "Dakar, Sénégal"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Active order */}
       {currentOrder && currentOrder.status !== "completed" && currentOrder.status !== "cancelled" && (

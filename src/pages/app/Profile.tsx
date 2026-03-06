@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Bell, CreditCard, FileText, HelpCircle, LogOut, ChevronRight, Settings, Heart } from "lucide-react";
+import { User, Bell, CreditCard, FileText, HelpCircle, LogOut, ChevronRight, Settings, Heart, MapPin, Star, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/app/BottomNav";
 import { Switch } from "@/components/ui/switch";
+import Map from "@/components/app/Map";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOrders } from "@/hooks/useOrders";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useProviders, Provider } from "@/hooks/useProviders";
 import { toast } from "sonner";
+import L from "leaflet";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -18,7 +21,9 @@ const Profile = () => {
   const { roles, addRole } = useUserRole();
   const { orders } = useOrders();
   const { unreadCount } = useNotifications();
+  const { providers } = useProviders();
   const [isTogglingProvider, setIsTogglingProvider] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
 
   const isProvider = roles.includes("provider");
   const completedOrders = orders.filter(o => o.status === "completed").length;
@@ -40,6 +45,10 @@ const Profile = () => {
     } else if (checked && isProvider) {
       navigate("/app/provider");
     }
+  };
+
+  const handleBookProvider = (provider: Provider) => {
+    navigate("/app/order", { state: { preferredProviderId: provider.id } });
   };
 
   const menuItems = [
@@ -66,10 +75,13 @@ const Profile = () => {
   const phone = profile?.phone || user.phone || "";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  // Providers with location for map
+  const providersWithLocation = providers.filter(p => p.latitude && p.longitude);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Profile header */}
-      <div className="bg-primary safe-area-top">
+      <div className="bg-primary safe-area-top sticky top-0 z-20">
         <div className="px-6 pt-10 pb-8 text-center">
           <motion.div
             className="w-20 h-20 rounded-2xl bg-white mx-auto mb-4 flex items-center justify-center overflow-hidden shadow-lg"
@@ -94,6 +106,51 @@ const Profile = () => {
       </div>
 
       <div className="p-4 space-y-3 -mt-3 relative z-10">
+        {/* Providers map */}
+        {providersWithLocation.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h3 className="font-display font-bold text-foreground text-sm mb-2 px-1 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Prestataires à proximité ({providersWithLocation.length})
+            </h3>
+            <ProvidersMap
+              providers={providersWithLocation}
+              onSelectProvider={setSelectedProvider}
+            />
+            {selectedProvider && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-2 bg-card border border-border rounded-2xl p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">
+                      {(selectedProvider.company_name || "P").slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground text-sm">{selectedProvider.company_name || "Prestataire"}</p>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                      <span className="text-xs text-muted-foreground">{Number(selectedProvider.rating || 0).toFixed(1)} • {selectedProvider.total_missions || 0} missions</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleBookProvider(selectedProvider)}
+                    className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                  >
+                    Réserver
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+
         {/* Provider toggle */}
         <motion.div
           className="bg-card border border-border rounded-2xl p-4"
@@ -166,6 +223,64 @@ const Profile = () => {
 
       <BottomNav />
     </div>
+  );
+};
+
+// Providers Map component
+const ProvidersMap = ({
+  providers,
+  onSelectProvider,
+}: {
+  providers: Provider[];
+  onSelectProvider: (p: Provider) => void;
+}) => {
+  const mapRef = useState<HTMLDivElement | null>(null);
+  const mapContainerRef = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = document.getElementById("providers-map");
+    if (!container) return;
+
+    const map = L.map(container, {
+      center: [14.6937, -17.4441],
+      zoom: 12,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    const bounds: [number, number][] = [];
+
+    providers.forEach((p) => {
+      if (!p.latitude || !p.longitude) return;
+      bounds.push([p.latitude, p.longitude]);
+
+      const icon = L.divIcon({
+        html: `<div style="background: hsl(var(--primary)); color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid white; cursor: pointer;">🚛</div>`,
+        className: "custom-provider-marker",
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+
+      L.marker([p.latitude, p.longitude], { icon })
+        .addTo(map)
+        .on("click", () => onSelectProvider(p));
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+    }
+
+    return () => { map.remove(); };
+  }, [providers, onSelectProvider]);
+
+  return (
+    <div
+      id="providers-map"
+      className="w-full h-48 rounded-2xl overflow-hidden border border-border"
+    />
   );
 };
 

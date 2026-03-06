@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Truck, Building2, FileCheck, MapPin, Settings, ChevronRight, LogOut, Camera, Loader2, Star, Zap, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,12 +21,26 @@ const ProviderProfile = () => {
   const { stats, formatPrice } = useProviderStats();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showWorkZone, setShowWorkZone] = useState(false);
+  const [workZoneRadius, setWorkZoneRadius] = useState(provider?.work_zone_radius || 15);
 
   const handleToggleOnline = async (online: boolean) => {
     setIsUpdating(true);
     const { error } = await updateProvider({ is_online: online });
     setIsUpdating(false);
     if (error) toast({ title: "Erreur", description: "Impossible de changer le statut", variant: "destructive" });
+  };
+
+  const handleSaveWorkZone = async () => {
+    setIsUpdating(true);
+    const { error } = await updateProvider({ work_zone_radius: workZoneRadius } as any);
+    setIsUpdating(false);
+    if (error) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder", variant: "destructive" });
+    } else {
+      toast({ title: "Succès", description: `Zone de travail: ${workZoneRadius} km` });
+      setShowWorkZone(false);
+    }
   };
 
   const handleLogout = async () => { await signOut(); navigate("/"); };
@@ -55,7 +70,7 @@ const ProviderProfile = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="bg-primary safe-area-top">
+      <div className="bg-primary safe-area-top relative z-20">
         <div className="flex items-center gap-3 p-4">
           <button onClick={() => navigate("/app/provider")} className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
             <ArrowLeft className="w-5 h-5 text-white" />
@@ -129,14 +144,55 @@ const ProviderProfile = () => {
           </div>
         </div>
 
+        {/* Work Zone */}
+        <div>
+          <h3 className="font-display font-bold text-foreground text-sm mb-2 px-1">Zone de travail</h3>
+          <div className="bg-card rounded-2xl border border-border p-4">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-primary/8 rounded-lg flex items-center justify-center"><MapPin className="w-4 h-4 text-primary" /></div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Rayon d'intervention</p>
+                  <p className="text-xs text-muted-foreground">Définissez votre périmètre</p>
+                </div>
+              </div>
+              <span className="text-lg font-bold text-primary">{workZoneRadius} km</span>
+            </div>
+            <div className="mt-4 px-1">
+              <Slider
+                value={[workZoneRadius]}
+                onValueChange={(v) => setWorkZoneRadius(v[0])}
+                min={1}
+                max={50}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] text-muted-foreground">1 km</span>
+                <span className="text-[10px] text-muted-foreground">50 km</span>
+              </div>
+            </div>
+            {workZoneRadius !== (provider?.work_zone_radius || 15) && (
+              <motion.button
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={handleSaveWorkZone}
+                disabled={isUpdating}
+                className="w-full mt-3 bg-primary text-primary-foreground py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isUpdating ? "Enregistrement..." : "Sauvegarder"}
+              </motion.button>
+            )}
+          </div>
+        </div>
+
         {/* Menu */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {[
             { icon: Settings, label: "Modifier mon profil", path: "/app/profile/edit" },
             { icon: FileCheck, label: "Documents", path: "/app/provider/documents" },
-            { icon: MapPin, label: "Zone de travail", path: null as string | null },
           ].map((item) => (
-            <button key={item.label} onClick={() => item.path && navigate(item.path)} className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors">
+            <button key={item.label} onClick={() => navigate(item.path)} className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors">
               <div className="w-9 h-9 bg-muted rounded-lg flex items-center justify-center"><item.icon className="w-4 h-4 text-muted-foreground" /></div>
               <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />

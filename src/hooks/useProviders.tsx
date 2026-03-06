@@ -16,6 +16,7 @@ export interface Provider {
   longitude: number | null;
   license_url: string | null;
   vehicle_registration_url: string | null;
+  work_zone_radius: number | null;
   created_at: string;
 }
 
@@ -40,25 +41,18 @@ export const useProviders = () => {
 
     fetchProviders();
 
-    // Subscribe to provider status changes
     const channel = supabase
       .channel("providers-online")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "providers",
-        },
+        { event: "*", schema: "public", table: "providers" },
         (payload) => {
           if (payload.eventType === "UPDATE") {
             const updated = payload.new as Provider;
             if (updated.is_online) {
               setProviders((prev) => {
                 const exists = prev.find((p) => p.id === updated.id);
-                if (exists) {
-                  return prev.map((p) => (p.id === updated.id ? updated : p));
-                }
+                if (exists) return prev.map((p) => (p.id === updated.id ? updated : p));
                 return [...prev, updated];
               });
             } else {
@@ -69,9 +63,7 @@ export const useProviders = () => {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   return { providers, loading };
@@ -83,11 +75,7 @@ export const useMyProvider = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setProvider(null);
-      setLoading(false);
-      return;
-    }
+    if (!user) { setProvider(null); setLoading(false); return; }
 
     const fetchProvider = async () => {
       const { data, error } = await supabase
@@ -96,9 +84,7 @@ export const useMyProvider = () => {
         .eq("user_id", user.id)
         .single();
 
-      if (!error && data) {
-        setProvider(data as Provider);
-      }
+      if (!error && data) setProvider(data as Provider);
       setLoading(false);
     };
 
@@ -118,10 +104,7 @@ export const useMyProvider = () => {
       .select()
       .single();
 
-    if (!error && data) {
-      setProvider(data as Provider);
-    }
-
+    if (!error && data) setProvider(data as Provider);
     return { data: data as Provider | null, error };
   };
 
@@ -130,17 +113,11 @@ export const useMyProvider = () => {
 
     const { data, error } = await supabase
       .from("providers")
-      .insert({
-        ...providerData,
-        user_id: user.id,
-      })
+      .insert({ ...providerData, user_id: user.id })
       .select()
       .single();
 
-    if (!error && data) {
-      setProvider(data as Provider);
-    }
-
+    if (!error && data) setProvider(data as Provider);
     return { data: data as Provider | null, error };
   };
 
