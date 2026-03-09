@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, ArrowRight, MapPin, Navigation } from "lucide-react";
+import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, ArrowRight, Navigation, MapPin, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
@@ -10,7 +10,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useProviders, Provider } from "@/hooks/useProviders";
 import logo from "@/assets/linkeco-logo.png";
+import L from "leaflet";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -18,10 +20,12 @@ const Home = () => {
   const { currentOrder } = useOrders();
   const { profile } = useProfile();
   const { roles } = useUserRole();
+  const { providers } = useProviders();
   const [userLat, setUserLat] = useState(14.6937);
   const [userLng, setUserLng] = useState(-17.4441);
   const [userAddress, setUserAddress] = useState("");
   const [locating, setLocating] = useState(true);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
 
   const isProvider = roles.includes("provider");
 
@@ -29,7 +33,6 @@ const Home = () => {
     if (!loading && !user) navigate("/app/auth");
   }, [user, loading, navigate]);
 
-  // Get user location on mount
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -65,6 +68,12 @@ const Home = () => {
   const initials = (profile?.full_name || user?.user_metadata?.full_name || user?.email || "U")
     .split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  const providersWithLocation = providers.filter(p => p.latitude && p.longitude);
+
+  const handleBookProvider = (provider: Provider) => {
+    navigate("/app/order", { state: { preferredProviderId: provider.id } });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -76,7 +85,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="bg-card safe-area-top border-b border-border sticky top-0 z-20">
+      <div className="bg-card safe-area-top border-b border-border sticky top-0 z-30">
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-9" />
           <div className="flex items-center gap-2">
@@ -104,7 +113,7 @@ const Home = () => {
       </div>
 
       {/* Greeting */}
-      <div className="px-4 pt-6 pb-3">
+      <div className="px-4 pt-6 pb-3 relative z-0">
         <motion.p className="text-sm text-muted-foreground mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           Bonjour 👋
         </motion.p>
@@ -120,7 +129,7 @@ const Home = () => {
 
       {/* User location map */}
       <motion.div
-        className="px-4 pb-4"
+        className="px-4 pb-4 relative z-0"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08 }}
@@ -146,9 +155,56 @@ const Home = () => {
         </div>
       </motion.div>
 
+      {/* Providers nearby map */}
+      {providersWithLocation.length > 0 && (
+        <motion.div
+          className="px-4 pb-4 relative z-0"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h3 className="font-display font-bold text-foreground text-sm mb-2 px-1 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-primary" />
+            Prestataires à proximité ({providersWithLocation.length})
+          </h3>
+          <ProvidersMap
+            providers={providersWithLocation}
+            onSelectProvider={setSelectedProvider}
+          />
+          {selectedProvider && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 bg-card border border-border rounded-2xl p-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                  <span className="text-sm font-bold text-white">
+                    {(selectedProvider.company_name || "P").slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground text-sm">{selectedProvider.company_name || "Prestataire"}</p>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                    <span className="text-xs text-muted-foreground">{Number(selectedProvider.rating || 0).toFixed(1)} • {selectedProvider.total_missions || 0} missions</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleBookProvider(selectedProvider)}
+                  className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                >
+                  Réserver
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+
       {/* Active order */}
       {currentOrder && currentOrder.status !== "completed" && currentOrder.status !== "cancelled" && (
-        <motion.div className="px-4 pb-4" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
+        <motion.div className="px-4 pb-4 relative z-0" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
           <button
             onClick={() => navigate("/app/tracking", { state: { orderId: currentOrder.id } })}
             className="w-full bg-primary rounded-2xl p-4 flex items-center gap-4 shadow-green"
@@ -169,10 +225,10 @@ const Home = () => {
 
       {/* Quick action */}
       <motion.div
-        className="px-4 pb-6"
+        className="px-4 pb-6 relative z-0"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.12 }}
       >
         <button
           onClick={() => navigate("/app/order")}
@@ -191,7 +247,7 @@ const Home = () => {
       </motion.div>
 
       {/* Services */}
-      <div className="px-4">
+      <div className="px-4 relative z-0">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg font-bold text-foreground">Nos services</h2>
         </div>
@@ -217,6 +273,63 @@ const Home = () => {
 
       <BottomNav />
     </div>
+  );
+};
+
+// Providers Map component
+const ProvidersMap = ({
+  providers,
+  onSelectProvider,
+}: {
+  providers: Provider[];
+  onSelectProvider: (p: Provider) => void;
+}) => {
+  const containerRef = useEffect;
+
+  useEffect(() => {
+    const container = document.getElementById("providers-map-home");
+    if (!container) return;
+
+    const map = L.map(container, {
+      center: [14.6937, -17.4441],
+      zoom: 12,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    const bounds: [number, number][] = [];
+
+    providers.forEach((p) => {
+      if (!p.latitude || !p.longitude) return;
+      bounds.push([p.latitude, p.longitude]);
+
+      const icon = L.divIcon({
+        html: `<div style="background: hsl(var(--primary)); color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid white; cursor: pointer;">🚛</div>`,
+        className: "custom-provider-marker",
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+
+      L.marker([p.latitude, p.longitude], { icon })
+        .addTo(map)
+        .on("click", () => onSelectProvider(p));
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+    }
+
+    return () => { map.remove(); };
+  }, [providers, onSelectProvider]);
+
+  return (
+    <div
+      id="providers-map-home"
+      className="w-full h-48 rounded-2xl overflow-hidden border border-border"
+    />
   );
 };
 
