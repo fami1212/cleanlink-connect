@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Home as HomeIcon, AlertTriangle, Wrench, ArrowRight, Navigation, MapPin, Star } from "lucide-react";
 import { motion } from "framer-motion";
@@ -6,13 +6,24 @@ import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
 import NotificationBell from "@/components/app/NotificationBell";
 import Map from "@/components/app/Map";
+import ProvidersMap from "@/components/app/ProvidersMap";
+import ProviderSearchFilters, { ProviderFilters } from "@/components/app/ProviderSearchFilters";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProviders, Provider } from "@/hooks/useProviders";
 import logo from "@/assets/linkeco-logo.png";
-import L from "leaflet";
+
+function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 const Home = () => {
   const navigate = useNavigate();
@@ -26,6 +37,12 @@ const Home = () => {
   const [userAddress, setUserAddress] = useState("");
   const [locating, setLocating] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [filters, setFilters] = useState<ProviderFilters>({
+    search: "",
+    minRating: 0,
+    maxDistance: 100,
+    serviceType: null,
+  });
 
   const isProvider = roles.includes("provider");
 
@@ -68,7 +85,28 @@ const Home = () => {
   const initials = (profile?.full_name || user?.user_metadata?.full_name || user?.email || "U")
     .split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  const providersWithLocation = providers.filter(p => p.latitude && p.longitude);
+  const filteredProviders = useMemo(() => {
+    return providers.filter((p) => {
+      if (!p.latitude || !p.longitude) return false;
+
+      // Search by name
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        if (!(p.company_name || "").toLowerCase().includes(q)) return false;
+      }
+
+      // Rating
+      if (filters.minRating > 0 && (Number(p.rating) || 0) < filters.minRating) return false;
+
+      // Distance
+      if (filters.maxDistance < 100) {
+        const dist = getDistanceKm(userLat, userLng, p.latitude, p.longitude);
+        if (dist > filters.maxDistance) return false;
+      }
+
+      return true;
+    });
+  }, [providers, filters, userLat, userLng]);
 
   const handleBookProvider = (provider: Provider) => {
     navigate("/app/order", { state: { preferredProviderId: provider.id } });
@@ -155,20 +193,30 @@ const Home = () => {
         </div>
       </motion.div>
 
+      {/* Provider search & filters */}
+      <motion.div
+        className="px-4 pb-3 relative z-0"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <h3 className="font-display font-bold text-foreground text-sm mb-2 px-1 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          Prestataires à proximité ({filteredProviders.length})
+        </h3>
+        <ProviderSearchFilters filters={filters} onChange={setFilters} />
+      </motion.div>
+
       {/* Providers nearby map */}
-      {providersWithLocation.length > 0 && (
+      {filteredProviders.length > 0 && (
         <motion.div
           className="px-4 pb-4 relative z-0"
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.12 }}
         >
-          <h3 className="font-display font-bold text-foreground text-sm mb-2 px-1 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            Prestataires à proximité ({providersWithLocation.length})
-          </h3>
           <ProvidersMap
-            providers={providersWithLocation}
+            providers={filteredProviders}
             onSelectProvider={setSelectedProvider}
           />
           {selectedProvider && (
@@ -187,7 +235,12 @@ const Home = () => {
                   <p className="font-semibold text-foreground text-sm">{selectedProvider.company_name || "Prestataire"}</p>
                   <div className="flex items-center gap-1">
                     <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs text-muted-foreground">{Number(selectedProvider.rating || 0).toFixed(1)} • {selectedProvider.total_missions || 0} missions</span>
+                    <span className="text-xs text-muted-foreground">
+                      {Number(selectedProvider.rating || 0).toFixed(1)} • {selectedProvider.total_missions || 0} missions
+                      {selectedProvider.latitude && (
+                        <> • {getDistanceKm(userLat, userLng, selectedProvider.latitude, selectedProvider.longitude!).toFixed(1)} km</>
+                      )}
+                    </span>
                   </div>
                 </div>
                 <button
@@ -200,6 +253,14 @@ const Home = () => {
             </motion.div>
           )}
         </motion.div>
+      )}
+
+      {filteredProviders.length === 0 && (
+        <div className="px-4 pb-4 relative z-0">
+          <div className="bg-muted/50 rounded-2xl p-6 text-center">
+            <p className="text-sm text-muted-foreground">Aucun prestataire ne correspond à vos critères</p>
+          </div>
+        </div>
       )}
 
       {/* Active order */}
@@ -228,7 +289,7 @@ const Home = () => {
         className="px-4 pb-6 relative z-0"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.12 }}
+        transition={{ delay: 0.14 }}
       >
         <button
           onClick={() => navigate("/app/order")}
@@ -273,63 +334,6 @@ const Home = () => {
 
       <BottomNav />
     </div>
-  );
-};
-
-// Providers Map component
-const ProvidersMap = ({
-  providers,
-  onSelectProvider,
-}: {
-  providers: Provider[];
-  onSelectProvider: (p: Provider) => void;
-}) => {
-  
-
-  useEffect(() => {
-    const container = document.getElementById("providers-map-home");
-    if (!container) return;
-
-    const map = L.map(container, {
-      center: [14.6937, -17.4441],
-      zoom: 12,
-      zoomControl: false,
-      attributionControl: false,
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-
-    const bounds: [number, number][] = [];
-
-    providers.forEach((p) => {
-      if (!p.latitude || !p.longitude) return;
-      bounds.push([p.latitude, p.longitude]);
-
-      const icon = L.divIcon({
-        html: `<div style="background: hsl(var(--primary)); color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid white; cursor: pointer;">🚛</div>`,
-        className: "custom-provider-marker",
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-      });
-
-      L.marker([p.latitude, p.longitude], { icon })
-        .addTo(map)
-        .on("click", () => onSelectProvider(p));
-    });
-
-    if (bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-    }
-
-    return () => { map.remove(); };
-  }, [providers, onSelectProvider]);
-
-  return (
-    <div
-      id="providers-map-home"
-      className="w-full h-48 rounded-2xl overflow-hidden border border-border"
-    />
   );
 };
 
