@@ -144,6 +144,16 @@
   }
 }
 
+/* Ensure Leaflet maps never overlap sticky headers */
+.leaflet-container {
+  z-index: 0 !important;
+}
+.leaflet-pane,
+.leaflet-control-container {
+  z-index: auto;
+}
+
+
 @layer utilities {
   .text-gradient {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
