@@ -284,7 +284,7 @@ const ProvidersMap = ({
   providers: Provider[];
   onSelectProvider: (p: Provider) => void;
 }) => {
-  const containerRef = useEffect;
+  
 
   useEffect(() => {
     const container = document.getElementById("providers-map-home");
