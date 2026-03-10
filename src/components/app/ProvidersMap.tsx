@@ -6,15 +6,24 @@ import { Provider } from "@/hooks/useProviders";
 interface ProvidersMapProps {
   providers: Provider[];
   onSelectProvider: (p: Provider) => void;
+  userLat?: number;
+  userLng?: number;
+  searchRadiusKm?: number;
 }
 
-const ProvidersMap = ({ providers, onSelectProvider }: ProvidersMapProps) => {
+const ProvidersMap = ({
+  providers,
+  onSelectProvider,
+  userLat = 14.6937,
+  userLng = -17.4441,
+  searchRadiusKm,
+}: ProvidersMapProps) => {
   useEffect(() => {
     const container = document.getElementById("providers-map-home");
     if (!container) return;
 
     const map = L.map(container, {
-      center: [14.6937, -17.4441],
+      center: [userLat, userLng],
       zoom: 12,
       zoomControl: false,
       attributionControl: false,
@@ -23,7 +32,28 @@ const ProvidersMap = ({ providers, onSelectProvider }: ProvidersMapProps) => {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    const bounds: [number, number][] = [];
+    // User position marker
+    const userIcon = L.divIcon({
+      html: `<div style="background: hsl(var(--accent)); border: 3px solid white; border-radius: 50%; width: 16px; height: 16px; box-shadow: 0 0 0 4px hsla(var(--accent), 0.25), 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+      className: "user-position-marker",
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    L.marker([userLat, userLng], { icon: userIcon, interactive: false }).addTo(map);
+
+    // Search radius circle
+    if (searchRadiusKm && searchRadiusKm < 100) {
+      L.circle([userLat, userLng], {
+        radius: searchRadiusKm * 1000,
+        color: "hsl(var(--primary))",
+        fillColor: "hsl(var(--primary))",
+        fillOpacity: 0.06,
+        weight: 1.5,
+        dashArray: "6 4",
+      }).addTo(map);
+    }
+
+    const bounds: [number, number][] = [[userLat, userLng]];
 
     providers.forEach((p) => {
       if (!p.latitude || !p.longitude) return;
@@ -41,12 +71,14 @@ const ProvidersMap = ({ providers, onSelectProvider }: ProvidersMapProps) => {
         .on("click", () => onSelectProvider(p));
     });
 
-    if (bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+    if (bounds.length > 1) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    } else if (searchRadiusKm && searchRadiusKm < 100) {
+      map.setZoom(searchRadiusKm <= 5 ? 13 : searchRadiusKm <= 10 ? 12 : 11);
     }
 
     return () => { map.remove(); };
-  }, [providers, onSelectProvider]);
+  }, [providers, onSelectProvider, userLat, userLng, searchRadiusKm]);
 
   return (
     <div
