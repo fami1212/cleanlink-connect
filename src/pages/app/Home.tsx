@@ -218,6 +218,9 @@ const Home = () => {
           <ProvidersMap
             providers={filteredProviders}
             onSelectProvider={setSelectedProvider}
+            userLat={userLat}
+            userLng={userLng}
+            searchRadiusKm={filters.maxDistance}
           />
           {selectedProvider && (
             <motion.div
