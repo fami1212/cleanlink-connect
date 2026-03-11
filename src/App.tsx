@@ -66,6 +66,8 @@ const App = () => (
             <Route path="/app/help" element={<Help />} />
             <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/favorites" element={<Favorites />} />
+            <Route path="/app/messages" element={<Conversations />} />
+            <Route path="/app/chat/:conversationId" element={<Chat />} />
             
             {/* Provider routes */}
             <Route path="/app/provider" element={<ProviderDashboard />} />

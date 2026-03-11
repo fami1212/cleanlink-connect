@@ -10,7 +10,7 @@ const BottomNav = () => {
   const navItems = [
     { icon: Home, label: "Accueil", path: "/app" },
     { icon: MapPin, label: "Suivi", path: "/app/tracking" },
-    { icon: Heart, label: "Favoris", path: "/app/favorites" },
+    { icon: MessageCircle, label: "Messages", path: "/app/messages" },
     { icon: User, label: "Profil", path: "/app/profile" },
   ];
 
