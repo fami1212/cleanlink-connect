@@ -24,6 +24,8 @@ import NotificationSettings from "./pages/app/NotificationSettings";
 import Help from "./pages/app/Help";
 import Settings from "./pages/app/Settings";
 import Favorites from "./pages/app/Favorites";
+import Conversations from "./pages/app/Conversations";
+import Chat from "./pages/app/Chat";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
