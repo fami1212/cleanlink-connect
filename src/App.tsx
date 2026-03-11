@@ -24,6 +24,8 @@ import NotificationSettings from "./pages/app/NotificationSettings";
 import Help from "./pages/app/Help";
 import Settings from "./pages/app/Settings";
 import Favorites from "./pages/app/Favorites";
+import Conversations from "./pages/app/Conversations";
+import Chat from "./pages/app/Chat";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
@@ -64,6 +66,8 @@ const App = () => (
             <Route path="/app/help" element={<Help />} />
             <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/favorites" element={<Favorites />} />
+            <Route path="/app/messages" element={<Conversations />} />
+            <Route path="/app/chat/:conversationId" element={<Chat />} />
             
             {/* Provider routes */}
             <Route path="/app/provider" element={<ProviderDashboard />} />

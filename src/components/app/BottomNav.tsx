@@ -1,4 +1,4 @@
-import { Home, MapPin, Heart, User } from "lucide-react";
+import { Home, MapPin, MessageCircle, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -10,7 +10,7 @@ const BottomNav = () => {
   const navItems = [
     { icon: Home, label: "Accueil", path: "/app" },
     { icon: MapPin, label: "Suivi", path: "/app/tracking" },
-    { icon: Heart, label: "Favoris", path: "/app/favorites" },
+    { icon: MessageCircle, label: "Messages", path: "/app/messages" },
     { icon: User, label: "Profil", path: "/app/profile" },
   ];
 
