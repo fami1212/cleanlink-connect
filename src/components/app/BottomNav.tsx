@@ -1,4 +1,4 @@
-import { Home, MapPin, Heart, User } from "lucide-react";
+import { Home, MapPin, MessageCircle, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
