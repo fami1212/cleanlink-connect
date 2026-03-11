@@ -82,18 +82,19 @@ export const useProviderOrders = () => {
       setPendingOrders(enrichedPending);
     }
 
-    // Fetch active order (current mission)
-    const { data: active, error: activeError } = await supabase
+    // Fetch active order (current mission) - use limit(1) to handle multiple active orders
+    const { data: activeList, error: activeError } = await supabase
       .from("orders")
       .select("*")
       .eq("provider_id", provider.id)
       .in("status", ["accepted", "in_progress"])
-      .maybeSingle();
+      .order("accepted_at", { ascending: false })
+      .limit(1);
 
     if (activeError) {
       console.error("Error fetching active order:", activeError);
-    } else if (active) {
-      setActiveOrder(enrichOrderWithDistance(active as Order));
+    } else if (activeList && activeList.length > 0) {
+      setActiveOrder(enrichOrderWithDistance(activeList[0] as Order));
     } else {
       setActiveOrder(null);
     }
