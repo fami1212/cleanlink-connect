@@ -36,6 +36,7 @@ const Home = () => {
   const [userLng, setUserLng] = useState(-17.4441);
   const [userAddress, setUserAddress] = useState("");
   const [locating, setLocating] = useState(true);
+  const [accuracy, setAccuracy] = useState<number | undefined>(undefined);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [filters, setFilters] = useState<ProviderFilters>({
     search: "",
