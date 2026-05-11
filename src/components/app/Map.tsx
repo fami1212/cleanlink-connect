@@ -90,27 +90,64 @@ const Map = ({
     };
   }, []);
 
-  // Update provider marker
+  // Update provider marker + route polyline
   useEffect(() => {
-    const lat = providerLat || (showTruck && truckDestination ? truckDestination.lat + 0.01 : undefined);
-    const lng = providerLng || (showTruck && truckDestination ? truckDestination.lng + 0.01 : undefined);
-    
-    if (!mapInstanceRef.current || !lat || !lng) return;
+    const lat = providerLat ?? (showTruck && truckDestination ? truckDestination.lat + 0.01 : undefined);
+    const lng = providerLng ?? (showTruck && truckDestination ? truckDestination.lng + 0.01 : undefined);
+    const map = mapInstanceRef.current;
+    if (!map || lat === undefined || lng === undefined) return;
 
     if (providerMarkerRef.current) {
       providerMarkerRef.current.setLatLng([lat, lng]);
     } else {
       const providerIcon = L.divIcon({
-        html: `<div class="bg-accent text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">🚛</div>`,
-        className: "custom-marker",
-        iconSize: [32, 32],
+        html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;">
+                 <div style="position:absolute;inset:0;border-radius:50%;background:hsl(var(--accent)/0.25);animation:pulse-ring 2s ease-out infinite;"></div>
+                 <div style="position:relative;width:34px;height:34px;border-radius:50%;background:hsl(var(--accent));border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;">🚛</div>
+               </div>`,
+        className: "custom-provider-marker",
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
       });
-
-      providerMarkerRef.current = L.marker([lat, lng], {
-        icon: providerIcon,
-      }).addTo(mapInstanceRef.current);
+      providerMarkerRef.current = L.marker([lat, lng], { icon: providerIcon }).addTo(map);
     }
-  }, [providerLat, providerLng, showTruck, truckDestination]);
+
+    // Draw route between provider and destination (client)
+    const dest = truckDestination;
+    if (dest && showRoute) {
+      const drawFallback = () => {
+        const coords: [number, number][] = [[lat, lng], [dest.lat, dest.lng]];
+        if (routeGlowRef.current) routeGlowRef.current.setLatLngs(coords);
+        else routeGlowRef.current = L.polyline(coords, {
+          color: "hsl(var(--primary))", opacity: 0.18, weight: 10,
+        }).addTo(map);
+        if (routeLineRef.current) routeLineRef.current.setLatLngs(coords);
+        else routeLineRef.current = L.polyline(coords, {
+          color: "hsl(var(--primary))", weight: 4, opacity: 0.9, dashArray: "8 8",
+        }).addTo(map);
+        try { map.fitBounds(L.latLngBounds(coords).pad(0.25)); } catch {}
+      };
+
+      const url = `https://router.project-osrm.org/route/v1/driving/${lng},${lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
+      fetch(url)
+        .then((r) => r.json())
+        .then((data) => {
+          const geom = data?.routes?.[0]?.geometry?.coordinates as [number, number][] | undefined;
+          if (!geom?.length) return drawFallback();
+          const coords: [number, number][] = geom.map(([lng, lat]) => [lat, lng]);
+          if (routeGlowRef.current) routeGlowRef.current.setLatLngs(coords);
+          else routeGlowRef.current = L.polyline(coords, {
+            color: "hsl(var(--primary))", opacity: 0.18, weight: 10,
+          }).addTo(map);
+          if (routeLineRef.current) routeLineRef.current.setLatLngs(coords);
+          else routeLineRef.current = L.polyline(coords, {
+            color: "hsl(var(--primary))", weight: 4, opacity: 0.95,
+          }).addTo(map);
+          try { map.fitBounds(L.latLngBounds(coords).pad(0.2)); } catch {}
+        })
+        .catch(drawFallback);
+    }
+  }, [providerLat, providerLng, showTruck, truckDestination?.lat, truckDestination?.lng, showRoute]);
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
