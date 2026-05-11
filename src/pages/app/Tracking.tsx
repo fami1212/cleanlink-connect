@@ -54,13 +54,14 @@ const Tracking = () => {
     const fetchProviderInfo = async () => {
       if (!order?.provider_id) {
         setProviderInfo(null);
+        setProviderPos(null);
         return;
       }
 
       // Get provider and their profile
       const { data: provider } = await supabase
         .from("providers")
-        .select("user_id, company_name, rating, vehicle_type")
+        .select("user_id, company_name, rating, vehicle_type, latitude, longitude")
         .eq("id", order.provider_id)
         .single();
 
@@ -79,10 +80,32 @@ const Tracking = () => {
           rating: provider.rating,
           vehicle_type: provider.vehicle_type,
         });
+        if (provider.latitude && provider.longitude) {
+          setProviderPos({ lat: Number(provider.latitude), lng: Number(provider.longitude) });
+        }
       }
     };
 
     fetchProviderInfo();
+  }, [order?.provider_id]);
+
+  // Realtime subscription on provider position
+  useEffect(() => {
+    if (!order?.provider_id) return;
+    const channel = supabase
+      .channel(`provider-pos-${order.provider_id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "providers", filter: `id=eq.${order.provider_id}` },
+        (payload) => {
+          const p: any = payload.new;
+          if (p?.latitude && p?.longitude) {
+            setProviderPos({ lat: Number(p.latitude), lng: Number(p.longitude) });
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [order?.provider_id]);
 
   // Show rating when order is completed
