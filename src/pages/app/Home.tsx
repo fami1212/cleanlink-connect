@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
 import NotificationBell from "@/components/app/NotificationBell";
-import Map from "@/components/app/Map";
+import UserLocationCard from "@/components/app/UserLocationCard";
 import ProvidersMap from "@/components/app/ProvidersMap";
 import ProviderSearchFilters, { ProviderFilters } from "@/components/app/ProviderSearchFilters";
 import { useAuth } from "@/hooks/useAuth";
