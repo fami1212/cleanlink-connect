@@ -41,6 +41,7 @@ const Tracking = () => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
+  const [providerPos, setProviderPos] = useState<{ lat: number; lng: number } | null>(null);
 
   const orderId = location.state?.orderId || currentOrder?.id;
   const order = orders.find(o => o.id === orderId) || currentOrder;
