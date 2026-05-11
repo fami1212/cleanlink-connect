@@ -267,10 +267,14 @@ const Tracking = () => {
           initialLat={order.latitude}
           initialLng={order.longitude}
           className="h-64"
+          interactive={false}
           showTruck={status === "in_progress" || status === "accepted"}
+          providerLat={providerPos?.lat}
+          providerLng={providerPos?.lng}
+          showRoute={(status === "in_progress" || status === "accepted") && !!providerPos}
           truckDestination={
             status === "in_progress" || status === "accepted"
-              ? { lat: order.latitude, lng: order.longitude }
+              ? { lat: Number(order.latitude), lng: Number(order.longitude) }
               : undefined
           }
         />
