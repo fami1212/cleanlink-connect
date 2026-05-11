@@ -51,26 +51,30 @@ const Home = () => {
     if (!loading && !user) navigate("/app/auth");
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-            const data = await res.json();
-            setUserAddress(data.display_name?.split(",").slice(0, 3).join(",") || "Votre position");
-          } catch { setUserAddress("Votre position"); }
-          setLocating(false);
-        },
-        () => setLocating(false),
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    } else {
+  const requestLocation = () => {
+    if (!("geolocation" in navigator)) {
       setLocating(false);
+      return;
     }
-  }, []);
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setAccuracy(pos.coords.accuracy);
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+          const data = await res.json();
+          setUserAddress(data.display_name?.split(",").slice(0, 3).join(",") || "Votre position");
+        } catch { setUserAddress("Votre position"); }
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  useEffect(() => { requestLocation(); }, []);
 
   const services = [
     { icon: Droplets, title: "Vidange fosse septique", description: "Service rapide et professionnel", featured: true },
