@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import BottomNav from "@/components/app/BottomNav";
 import ServiceCard from "@/components/app/ServiceCard";
 import NotificationBell from "@/components/app/NotificationBell";
-import Map from "@/components/app/Map";
+import UserLocationCard from "@/components/app/UserLocationCard";
 import ProvidersMap from "@/components/app/ProvidersMap";
 import ProviderSearchFilters, { ProviderFilters } from "@/components/app/ProviderSearchFilters";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +36,7 @@ const Home = () => {
   const [userLng, setUserLng] = useState(-17.4441);
   const [userAddress, setUserAddress] = useState("");
   const [locating, setLocating] = useState(true);
+  const [accuracy, setAccuracy] = useState<number | undefined>(undefined);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [filters, setFilters] = useState<ProviderFilters>({
     search: "",
@@ -50,26 +51,30 @@ const Home = () => {
     if (!loading && !user) navigate("/app/auth");
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-            const data = await res.json();
-            setUserAddress(data.display_name?.split(",").slice(0, 3).join(",") || "Votre position");
-          } catch { setUserAddress("Votre position"); }
-          setLocating(false);
-        },
-        () => setLocating(false),
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    } else {
+  const requestLocation = () => {
+    if (!("geolocation" in navigator)) {
       setLocating(false);
+      return;
     }
-  }, []);
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setAccuracy(pos.coords.accuracy);
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+          const data = await res.json();
+          setUserAddress(data.display_name?.split(",").slice(0, 3).join(",") || "Votre position");
+        } catch { setUserAddress("Votre position"); }
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  useEffect(() => { requestLocation(); }, []);
 
   const services = [
     { icon: Droplets, title: "Vidange fosse septique", description: "Service rapide et professionnel", featured: true },
@@ -165,32 +170,21 @@ const Home = () => {
         </motion.h1>
       </div>
 
-      {/* User location map */}
+      {/* User location card */}
       <motion.div
         className="px-4 pb-4 relative z-0"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08 }}
       >
-        <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
-          <Map
-            initialLat={userLat}
-            initialLng={userLng}
-            interactive={false}
-            className="h-40"
-          />
-          <div className="bg-card p-3 flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Navigation className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Votre position</p>
-              <p className="text-sm font-medium text-foreground truncate">
-                {locating ? "Localisation en cours..." : userAddress || "Dakar, Sénégal"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <UserLocationCard
+          lat={userLat}
+          lng={userLng}
+          address={userAddress || "Dakar, Sénégal"}
+          locating={locating}
+          accuracy={accuracy}
+          onRecenter={requestLocation}
+        />
       </motion.div>
 
       {/* Provider search & filters */}
