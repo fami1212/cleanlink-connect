@@ -152,6 +152,30 @@ const Map = ({
     }
   }, [providerLat, providerLng, showTruck, truckDestination?.lat, truckDestination?.lng, showRoute]);
 
+  // Draw route history polyline
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!historyPath || historyPath.length < 2) {
+      if (historyLineRef.current) {
+        map.removeLayer(historyLineRef.current);
+        historyLineRef.current = null;
+      }
+      return;
+    }
+    const coords: [number, number][] = historyPath.map((p) => [p.lat, p.lng]);
+    if (historyLineRef.current) {
+      historyLineRef.current.setLatLngs(coords);
+    } else {
+      historyLineRef.current = L.polyline(coords, {
+        color: "hsl(var(--accent))",
+        weight: 4,
+        opacity: 0.85,
+      }).addTo(map);
+    }
+    try { map.fitBounds(L.latLngBounds(coords).pad(0.2)); } catch {}
+  }, [historyPath]);
+
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
       const response = await fetch(
