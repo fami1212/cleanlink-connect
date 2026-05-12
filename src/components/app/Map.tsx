@@ -19,6 +19,7 @@ interface MapProps {
   showRoute?: boolean;
   showTruck?: boolean;
   truckDestination?: { lat: number; lng: number };
+  historyPath?: { lat: number; lng: number }[];
   interactive?: boolean;
   className?: string;
 }
@@ -32,6 +33,7 @@ const Map = ({
   showRoute = false,
   showTruck = false,
   truckDestination,
+  historyPath,
   interactive = true,
   className = "h-48",
 }: MapProps) => {
@@ -41,6 +43,7 @@ const Map = ({
   const providerMarkerRef = useRef<L.Marker | null>(null);
   const routeLineRef = useRef<L.Polyline | null>(null);
   const routeGlowRef = useRef<L.Polyline | null>(null);
+  const historyLineRef = useRef<L.Polyline | null>(null);
   const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
