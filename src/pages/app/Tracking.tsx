@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home } from "lucide-react";
+import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import BottomNav from "@/components/app/BottomNav";
@@ -42,6 +42,10 @@ const Tracking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
   const [providerPos, setProviderPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
+  const [history, setHistory] = useState<{ lat: number; lng: number }[]>([]);
+  const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean }>({});
+  const initialEtaRef = useRef<number | null>(null);
 
   const orderId = location.state?.orderId || currentOrder?.id;
   const order = orders.find(o => o.id === orderId) || currentOrder;
