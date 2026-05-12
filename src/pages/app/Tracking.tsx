@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home } from "lucide-react";
+import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import BottomNav from "@/components/app/BottomNav";
@@ -42,6 +42,10 @@ const Tracking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
   const [providerPos, setProviderPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
+  const [history, setHistory] = useState<{ lat: number; lng: number }[]>([]);
+  const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean }>({});
+  const initialEtaRef = useRef<number | null>(null);
 
   const orderId = location.state?.orderId || currentOrder?.id;
   const order = orders.find(o => o.id === orderId) || currentOrder;
@@ -107,6 +111,93 @@ const Tracking = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [order?.provider_id]);
+
+  // Compute ETA via OSRM when provider position changes (live mission)
+  useEffect(() => {
+    if (!order?.latitude || !order?.longitude || !providerPos) return;
+    if (status !== "accepted" && status !== "in_progress") return;
+    let cancelled = false;
+    const url = `https://router.project-osrm.org/route/v1/driving/${providerPos.lng},${providerPos.lat};${order.longitude},${order.latitude}?overview=false`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        const route = data?.routes?.[0];
+        if (cancelled || !route) return;
+        const minutes = Math.max(1, Math.round(route.duration / 60));
+        const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
+        setEta({ minutes, distanceKm });
+        if (initialEtaRef.current === null) initialEtaRef.current = minutes;
+
+        const distM = distanceKm * 1000;
+        if (distM <= 200 && !arrivalNotifiedRef.current.arrived) {
+          arrivalNotifiedRef.current.arrived = true;
+          toast.success("Votre prestataire est arrivé à proximité 🚛", { duration: 6000 });
+          if (order.client_id) {
+            supabase.from("notifications").insert({
+              user_id: order.client_id,
+              title: "Prestataire arrivé",
+              message: "Le prestataire est à moins de 200 m de votre adresse.",
+              type: "arrival",
+              data: { order_id: order.id },
+            });
+          }
+        } else if (distM <= 500 && !arrivalNotifiedRef.current.near) {
+          arrivalNotifiedRef.current.near = true;
+          toast("Votre prestataire approche (≈500 m)", { duration: 5000 });
+          if (order.client_id) {
+            supabase.from("notifications").insert({
+              user_id: order.client_id,
+              title: "Prestataire à proximité",
+              message: "Le prestataire est à environ 500 m.",
+              type: "approaching",
+              data: { order_id: order.id },
+            });
+          }
+        }
+
+        if (initialEtaRef.current && minutes > initialEtaRef.current + 10 && !(arrivalNotifiedRef.current as any).delayed) {
+          (arrivalNotifiedRef.current as any).delayed = true;
+          toast.warning(`Retard estimé: nouvelle ETA ${minutes} min`);
+          if (order.client_id) {
+            supabase.from("notifications").insert({
+              user_id: order.client_id,
+              title: "Retard du prestataire",
+              message: `Nouvelle estimation d'arrivée: ${minutes} min.`,
+              type: "delay",
+              data: { order_id: order.id, eta: minutes },
+            });
+          }
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [providerPos?.lat, providerPos?.lng, order?.latitude, order?.longitude, order?.id, order?.client_id, status]);
+
+  // Load route history (and subscribe live) for the order
+  useEffect(() => {
+    if (!order?.id) return;
+    const fetchHistory = async () => {
+      const { data } = await (supabase as any)
+        .from("order_tracks")
+        .select("latitude, longitude")
+        .eq("order_id", order.id)
+        .order("recorded_at", { ascending: true });
+      if (data) setHistory(data.map((d: any) => ({ lat: Number(d.latitude), lng: Number(d.longitude) })));
+    };
+    fetchHistory();
+
+    if (status === "completed" || status === "cancelled") return;
+    const channel = supabase
+      .channel(`order-tracks-${order.id}`)
+      .on("postgres_changes",
+        { event: "INSERT", schema: "public", table: "order_tracks", filter: `order_id=eq.${order.id}` },
+        (payload) => {
+          const p: any = payload.new;
+          setHistory((prev) => [...prev, { lat: Number(p.latitude), lng: Number(p.longitude) }]);
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [order?.id, status]);
 
   // Show rating when order is completed
   useEffect(() => {
@@ -277,6 +368,7 @@ const Tracking = () => {
               ? { lat: Number(order.latitude), lng: Number(order.longitude) }
               : undefined
           }
+          historyPath={history.length >= 2 ? history : undefined}
         />
       ) : (
         <div className="relative h-64 bg-gradient-to-br from-secondary/20 to-accent/20">
@@ -301,8 +393,34 @@ const Tracking = () => {
               </div>
               <div className="flex-1">
                 <p className="font-medium text-foreground text-sm">Arrivée estimée</p>
-                <p className="text-xs text-muted-foreground">Dans environ 15-25 minutes</p>
+                <p className="text-xs text-muted-foreground">
+                  {eta
+                    ? `≈ ${eta.minutes} min • ${eta.distanceKm} km restants`
+                    : "Calcul en cours…"}
+                </p>
               </div>
+              {eta && eta.distanceKm * 1000 <= 500 && (
+                <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+                  À proximité
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Route history (completed orders) */}
+      {status === "completed" && history.length >= 2 && (
+        <div className="px-4 mt-3">
+          <div className="bg-card rounded-xl shadow-sm border border-border p-3 flex items-center gap-3">
+            <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+              <Route className="w-5 h-5 text-accent" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-foreground text-sm">Trajet parcouru</p>
+              <p className="text-xs text-muted-foreground">
+                {history.length} points enregistrés sur l'itinéraire
+              </p>
             </div>
           </div>
         </div>

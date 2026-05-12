@@ -19,6 +19,7 @@ interface MapProps {
   showRoute?: boolean;
   showTruck?: boolean;
   truckDestination?: { lat: number; lng: number };
+  historyPath?: { lat: number; lng: number }[];
   interactive?: boolean;
   className?: string;
 }
@@ -32,6 +33,7 @@ const Map = ({
   showRoute = false,
   showTruck = false,
   truckDestination,
+  historyPath,
   interactive = true,
   className = "h-48",
 }: MapProps) => {
@@ -41,6 +43,7 @@ const Map = ({
   const providerMarkerRef = useRef<L.Marker | null>(null);
   const routeLineRef = useRef<L.Polyline | null>(null);
   const routeGlowRef = useRef<L.Polyline | null>(null);
+  const historyLineRef = useRef<L.Polyline | null>(null);
   const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
@@ -148,6 +151,30 @@ const Map = ({
         .catch(drawFallback);
     }
   }, [providerLat, providerLng, showTruck, truckDestination?.lat, truckDestination?.lng, showRoute]);
+
+  // Draw route history polyline
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!historyPath || historyPath.length < 2) {
+      if (historyLineRef.current) {
+        map.removeLayer(historyLineRef.current);
+        historyLineRef.current = null;
+      }
+      return;
+    }
+    const coords: [number, number][] = historyPath.map((p) => [p.lat, p.lng]);
+    if (historyLineRef.current) {
+      historyLineRef.current.setLatLngs(coords);
+    } else {
+      historyLineRef.current = L.polyline(coords, {
+        color: "hsl(var(--accent))",
+        weight: 4,
+        opacity: 0.85,
+      }).addTo(map);
+    }
+    try { map.fitBounds(L.latLngBounds(coords).pad(0.2)); } catch {}
+  }, [historyPath]);
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {

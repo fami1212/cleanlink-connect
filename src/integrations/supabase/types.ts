@@ -146,6 +146,36 @@ export type Database = {
         }
         Relationships: []
       }
+      order_tracks: {
+        Row: {
+          id: string
+          latitude: number
+          longitude: number
+          order_id: string
+          provider_id: string
+          recorded_at: string
+          speed: number | null
+        }
+        Insert: {
+          id?: string
+          latitude: number
+          longitude: number
+          order_id: string
+          provider_id: string
+          recorded_at?: string
+          speed?: number | null
+        }
+        Update: {
+          id?: string
+          latitude?: number
+          longitude?: number
+          order_id?: string
+          provider_id?: string
+          recorded_at?: string
+          speed?: number | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           accepted_at: string | null
