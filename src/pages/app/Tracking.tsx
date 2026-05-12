@@ -368,6 +368,7 @@ const Tracking = () => {
               ? { lat: Number(order.latitude), lng: Number(order.longitude) }
               : undefined
           }
+          historyPath={history.length >= 2 ? history : undefined}
         />
       ) : (
         <div className="relative h-64 bg-gradient-to-br from-secondary/20 to-accent/20">
@@ -392,8 +393,34 @@ const Tracking = () => {
               </div>
               <div className="flex-1">
                 <p className="font-medium text-foreground text-sm">Arrivée estimée</p>
-                <p className="text-xs text-muted-foreground">Dans environ 15-25 minutes</p>
+                <p className="text-xs text-muted-foreground">
+                  {eta
+                    ? `≈ ${eta.minutes} min • ${eta.distanceKm} km restants`
+                    : "Calcul en cours…"}
+                </p>
               </div>
+              {eta && eta.distanceKm * 1000 <= 500 && (
+                <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+                  À proximité
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Route history (completed orders) */}
+      {status === "completed" && history.length >= 2 && (
+        <div className="px-4 mt-3">
+          <div className="bg-card rounded-xl shadow-sm border border-border p-3 flex items-center gap-3">
+            <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+              <Route className="w-5 h-5 text-accent" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-foreground text-sm">Trajet parcouru</p>
+              <p className="text-xs text-muted-foreground">
+                {history.length} points enregistrés sur l'itinéraire
+              </p>
             </div>
           </div>
         </div>
