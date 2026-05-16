@@ -359,6 +359,19 @@ const ProviderMission = () => {
           onStatusChange={handleStatusChange}
           isLoading={isUpdating}
         />
+
+        {/* Timeline */}
+        {events.length > 0 && <TrackingTimeline events={events} title="Chronologie de la mission" />}
+
+        {/* Quick contact */}
+        <Button
+          variant="soft"
+          className="w-full"
+          onClick={() => navigate("/app/conversations")}
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Ouvrir la messagerie client
+        </Button>
       </div>
     </div>
   );
