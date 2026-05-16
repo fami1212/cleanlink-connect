@@ -55,10 +55,21 @@ const Tracking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
   const [providerPos, setProviderPos] = useState<{ lat: number; lng: number } | null>(null);
-  const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
-  const [history, setHistory] = useState<{ lat: number; lng: number }[]>([]);
-  const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean }>({});
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
+  const [history, setHistory] = useState<{ lat: number; lng: number; at: Date; speed: number | null }[]>([]);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean; delayed?: boolean }>({});
   const initialEtaRef = useRef<number | null>(null);
+  const lastEtaBucketRef = useRef<number | null>(null);
+  const lastStatusRef = useRef<string | null>(null);
+  const { prefs } = useTrackingPreferences();
+
+  const pushEvent = (ev: Omit<TimelineEvent, "id" | "at"> & { at?: Date }) => {
+    setEvents((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: ev.at ?? new Date(), ...ev },
+    ]);
+  };
 
   const orderId = location.state?.orderId || currentOrder?.id;
   const order = orders.find(o => o.id === orderId) || currentOrder;
