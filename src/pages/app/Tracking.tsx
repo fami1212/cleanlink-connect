@@ -494,7 +494,7 @@ const Tracking = () => {
               ? { lat: Number(order.latitude), lng: Number(order.longitude) }
               : undefined
           }
-          historyPath={history.length >= 2 ? history : undefined}
+          historyPath={history.length >= 2 ? history.map((h) => ({ lat: h.lat, lng: h.lng })) : undefined}
         />
       ) : (
         <div className="relative h-64 bg-gradient-to-br from-secondary/20 to-accent/20">
