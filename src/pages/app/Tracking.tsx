@@ -509,29 +509,60 @@ const Tracking = () => {
         </div>
       )}
 
-      {/* ETA indicator */}
+      {/* ETA premium card */}
       {(status === "accepted" || status === "in_progress") && (
-        <div className="px-4 -mt-4 relative z-10">
-          <div className="bg-card rounded-xl shadow-lg p-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <Clock className="w-5 h-5 text-primary" />
+        <div className="px-4 -mt-6 relative z-10">
+          <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 p-4">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                  <div className="relative w-11 h-11 bg-primary rounded-full flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                    Arrivée estimée
+                  </p>
+                  <p className="font-display text-2xl font-bold text-foreground leading-tight">
+                    {eta ? `${eta.minutes} min` : "Calcul…"}
+                  </p>
+                </div>
+                {eta && (
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Distance</p>
+                    <p className="font-semibold text-foreground">{eta.distanceKm} km</p>
+                  </div>
+                )}
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground text-sm">Arrivée estimée</p>
-                <p className="text-xs text-muted-foreground">
-                  {eta
-                    ? `≈ ${eta.minutes} min • ${eta.distanceKm} km restants`
-                    : "Calcul en cours…"}
-                </p>
-              </div>
-              {eta && eta.distanceKm * 1000 <= 500 && (
-                <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 border-t border-border text-xs">
+              {eta?.source === "estimated" ? (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Gauge className="w-3 h-3" /> Estimation locale (OSRM indisponible)
+                </span>
+              ) : eta ? (
+                <span className="flex items-center gap-1 text-primary">
+                  <Navigation2 className="w-3 h-3" /> Itinéraire temps réel
+                </span>
+              ) : (
+                <span className="text-muted-foreground">En attente de la position du prestataire…</span>
+              )}
+              {eta && eta.distanceKm * 1000 <= prefs.proximityThreshold && (
+                <span className="ml-auto px-2 py-0.5 bg-accent/15 text-accent font-medium rounded-full">
                   À proximité
                 </span>
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Timeline */}
+      {(status !== "pending") && events.length > 0 && (
+        <div className="px-4 mt-4">
+          <TrackingTimeline events={events} />
         </div>
       )}
 
