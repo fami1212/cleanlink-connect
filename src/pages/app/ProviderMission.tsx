@@ -1,13 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Navigation, Phone, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Navigation, Phone, Clock, MapPin, Gauge, Navigation2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProviderOrders } from "@/hooks/useProviderOrders";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import MissionStatusStepper from "@/components/app/MissionStatusStepper";
 import Map from "@/components/app/Map";
+import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
 import { toast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/database";
+
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+};
 
 const ProviderMission = () => {
   const navigate = useNavigate();
