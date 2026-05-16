@@ -271,6 +271,49 @@ const ProviderMission = () => {
         </div>
       </div>
 
+      {/* ETA premium card */}
+      {(activeOrder.status === "accepted" || activeOrder.status === "in_progress") && (
+        <div className="px-4 -mt-6 relative z-10">
+          <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 p-4 flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                <div className="relative w-11 h-11 bg-primary rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-primary-foreground" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                  Arrivée chez le client
+                </p>
+                <p className="font-display text-2xl font-bold text-foreground leading-tight">
+                  {eta ? `${eta.minutes} min` : "Calcul…"}
+                </p>
+              </div>
+              {eta && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Distance</p>
+                  <p className="font-semibold text-foreground">{eta.distanceKm} km</p>
+                </div>
+              )}
+            </div>
+            <div className="px-4 py-2 border-t border-border text-xs">
+              {eta?.source === "estimated" ? (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Gauge className="w-3 h-3" /> Estimation locale (OSRM indisponible)
+                </span>
+              ) : eta ? (
+                <span className="flex items-center gap-1 text-primary">
+                  <Navigation2 className="w-3 h-3" /> Itinéraire temps réel
+                </span>
+              ) : (
+                <span className="text-muted-foreground">En attente de votre position GPS…</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 p-4 space-y-4 pb-24">
         {/* Client info */}
