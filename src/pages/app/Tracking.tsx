@@ -655,7 +655,7 @@ const Tracking = () => {
                 <Phone className="w-4 h-4 mr-2" />
                 Appeler
               </Button>
-              <Button variant="softBlue" className="flex-1">
+              <Button variant="softBlue" className="flex-1" onClick={() => navigate("/app/conversations")}>
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Message
               </Button>
