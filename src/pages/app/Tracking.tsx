@@ -1,12 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route } from "lucide-react";
+import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route, Gauge, Navigation2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import BottomNav from "@/components/app/BottomNav";
 import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTrackingPreferences } from "@/hooks/useTrackingPreferences";
+import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
+
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+};
 
 const serviceTypeLabels: Record<string, string> = {
   fosse_septique: "Vidange fosse septique",
