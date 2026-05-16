@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, MessageSquare, Truck, Star, CreditCard } from "lucide-react";
+import { ArrowLeft, Bell, MessageSquare, Truck, Star, CreditCard, Navigation2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useTrackingPreferences, ProximityThreshold } from "@/hooks/useTrackingPreferences";
 
 const Notifications = () => {
   const navigate = useNavigate();
+  const { prefs, update: updatePrefs } = useTrackingPreferences();
   
   const [settings, setSettings] = useState({
     orderUpdates: true,
