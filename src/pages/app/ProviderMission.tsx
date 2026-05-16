@@ -28,6 +28,93 @@ const ProviderMission = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [missionStartTime, setMissionStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const lastEtaBucketRef = useRef<number | null>(null);
+  const lastStatusRef = useRef<string | null>(null);
+  const lastPosRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
+
+  const pushEvent = (ev: Omit<TimelineEvent, "id" | "at"> & { at?: Date }) => {
+    setEvents((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: ev.at ?? new Date(), ...ev },
+    ]);
+  };
+
+  // Status changes → timeline
+  useEffect(() => {
+    if (!activeOrder?.status) return;
+    if (lastStatusRef.current === activeOrder.status) return;
+    lastStatusRef.current = activeOrder.status;
+    const s = activeOrder.status;
+    if (s === "accepted") pushEvent({ type: "start", label: "Mission acceptée", detail: "En route vers le client" });
+    else if (s === "in_progress") pushEvent({ type: "status", label: "Intervention démarrée", detail: "Sur place" });
+    else if (s === "completed") pushEvent({ type: "arrived", label: "Mission terminée" });
+  }, [activeOrder?.status]);
+
+  // ETA computation with OSRM + fallback
+  useEffect(() => {
+    if (!activeOrder?.latitude || !activeOrder?.longitude || !position) return;
+    if (activeOrder.status !== "accepted" && activeOrder.status !== "in_progress") return;
+    let cancelled = false;
+    const dest = { lat: Number(activeOrder.latitude), lng: Number(activeOrder.longitude) };
+    const me = { lat: position.latitude, lng: position.longitude };
+
+    const applyEta = (minutes: number, distanceKm: number, source: "osrm" | "estimated") => {
+      if (cancelled) return;
+      setEta({ minutes, distanceKm, source });
+      const bucket = Math.round(minutes / 5) * 5;
+      if (lastEtaBucketRef.current === null) {
+        lastEtaBucketRef.current = bucket;
+        pushEvent({ type: "eta", label: `ETA initiale: ${minutes} min`, detail: `${distanceKm} km` });
+      } else if (bucket !== lastEtaBucketRef.current) {
+        lastEtaBucketRef.current = bucket;
+        pushEvent({
+          type: "eta",
+          label: `ETA: ${minutes} min`,
+          detail: `${distanceKm} km${source === "estimated" ? " (estimation)" : ""}`,
+        });
+      }
+    };
+
+    const fallback = () => {
+      const distanceKm = Math.round(haversineKm(me, dest) * 10) / 10;
+      let speedKmh = 25;
+      if (lastPosRef.current) {
+        const dKm = haversineKm(lastPosRef.current, me);
+        const dH = (Date.now() - lastPosRef.current.at) / 3600000;
+        if (dH > 0 && dKm > 0.01) speedKmh = Math.min(80, Math.max(5, dKm / dH));
+      }
+      const minutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60));
+      applyEta(minutes, distanceKm, "estimated");
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const url = `https://router.project-osrm.org/route/v1/driving/${me.lng},${me.lat};${dest.lng},${dest.lat}?overview=false`;
+    fetch(url, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((data) => {
+        clearTimeout(timeout);
+        const route = data?.routes?.[0];
+        if (cancelled) return;
+        if (!route) return fallback();
+        const minutes = Math.max(1, Math.round(route.duration / 60));
+        const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
+        applyEta(minutes, distanceKm, "osrm");
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        if (!cancelled) fallback();
+      });
+
+    lastPosRef.current = { lat: me.lat, lng: me.lng, at: Date.now() };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [position?.latitude, position?.longitude, activeOrder?.latitude, activeOrder?.longitude, activeOrder?.status]);
+
 
   useEffect(() => {
     if (!loading && !activeOrder) {
