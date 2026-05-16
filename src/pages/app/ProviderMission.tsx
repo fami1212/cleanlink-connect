@@ -1,13 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Navigation, Phone, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Navigation, Phone, Clock, MapPin, Gauge, Navigation2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProviderOrders } from "@/hooks/useProviderOrders";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import MissionStatusStepper from "@/components/app/MissionStatusStepper";
 import Map from "@/components/app/Map";
+import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
 import { toast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/database";
+
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+};
 
 const ProviderMission = () => {
   const navigate = useNavigate();
@@ -16,6 +28,93 @@ const ProviderMission = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [missionStartTime, setMissionStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const lastEtaBucketRef = useRef<number | null>(null);
+  const lastStatusRef = useRef<string | null>(null);
+  const lastPosRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
+
+  const pushEvent = (ev: Omit<TimelineEvent, "id" | "at"> & { at?: Date }) => {
+    setEvents((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: ev.at ?? new Date(), ...ev },
+    ]);
+  };
+
+  // Status changes → timeline
+  useEffect(() => {
+    if (!activeOrder?.status) return;
+    if (lastStatusRef.current === activeOrder.status) return;
+    lastStatusRef.current = activeOrder.status;
+    const s = activeOrder.status;
+    if (s === "accepted") pushEvent({ type: "start", label: "Mission acceptée", detail: "En route vers le client" });
+    else if (s === "in_progress") pushEvent({ type: "status", label: "Intervention démarrée", detail: "Sur place" });
+    else if (s === "completed") pushEvent({ type: "arrived", label: "Mission terminée" });
+  }, [activeOrder?.status]);
+
+  // ETA computation with OSRM + fallback
+  useEffect(() => {
+    if (!activeOrder?.latitude || !activeOrder?.longitude || !position) return;
+    if (activeOrder.status !== "accepted" && activeOrder.status !== "in_progress") return;
+    let cancelled = false;
+    const dest = { lat: Number(activeOrder.latitude), lng: Number(activeOrder.longitude) };
+    const me = { lat: position.latitude, lng: position.longitude };
+
+    const applyEta = (minutes: number, distanceKm: number, source: "osrm" | "estimated") => {
+      if (cancelled) return;
+      setEta({ minutes, distanceKm, source });
+      const bucket = Math.round(minutes / 5) * 5;
+      if (lastEtaBucketRef.current === null) {
+        lastEtaBucketRef.current = bucket;
+        pushEvent({ type: "eta", label: `ETA initiale: ${minutes} min`, detail: `${distanceKm} km` });
+      } else if (bucket !== lastEtaBucketRef.current) {
+        lastEtaBucketRef.current = bucket;
+        pushEvent({
+          type: "eta",
+          label: `ETA: ${minutes} min`,
+          detail: `${distanceKm} km${source === "estimated" ? " (estimation)" : ""}`,
+        });
+      }
+    };
+
+    const fallback = () => {
+      const distanceKm = Math.round(haversineKm(me, dest) * 10) / 10;
+      let speedKmh = 25;
+      if (lastPosRef.current) {
+        const dKm = haversineKm(lastPosRef.current, me);
+        const dH = (Date.now() - lastPosRef.current.at) / 3600000;
+        if (dH > 0 && dKm > 0.01) speedKmh = Math.min(80, Math.max(5, dKm / dH));
+      }
+      const minutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60));
+      applyEta(minutes, distanceKm, "estimated");
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const url = `https://router.project-osrm.org/route/v1/driving/${me.lng},${me.lat};${dest.lng},${dest.lat}?overview=false`;
+    fetch(url, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((data) => {
+        clearTimeout(timeout);
+        const route = data?.routes?.[0];
+        if (cancelled) return;
+        if (!route) return fallback();
+        const minutes = Math.max(1, Math.round(route.duration / 60));
+        const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
+        applyEta(minutes, distanceKm, "osrm");
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        if (!cancelled) fallback();
+      });
+
+    lastPosRef.current = { lat: me.lat, lng: me.lng, at: Date.now() };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [position?.latitude, position?.longitude, activeOrder?.latitude, activeOrder?.longitude, activeOrder?.status]);
+
 
   useEffect(() => {
     if (!loading && !activeOrder) {
@@ -172,6 +271,49 @@ const ProviderMission = () => {
         </div>
       </div>
 
+      {/* ETA premium card */}
+      {(activeOrder.status === "accepted" || activeOrder.status === "in_progress") && (
+        <div className="px-4 -mt-6 relative z-10">
+          <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 p-4 flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                <div className="relative w-11 h-11 bg-primary rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-primary-foreground" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                  Arrivée chez le client
+                </p>
+                <p className="font-display text-2xl font-bold text-foreground leading-tight">
+                  {eta ? `${eta.minutes} min` : "Calcul…"}
+                </p>
+              </div>
+              {eta && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Distance</p>
+                  <p className="font-semibold text-foreground">{eta.distanceKm} km</p>
+                </div>
+              )}
+            </div>
+            <div className="px-4 py-2 border-t border-border text-xs">
+              {eta?.source === "estimated" ? (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Gauge className="w-3 h-3" /> Estimation locale (OSRM indisponible)
+                </span>
+              ) : eta ? (
+                <span className="flex items-center gap-1 text-primary">
+                  <Navigation2 className="w-3 h-3" /> Itinéraire temps réel
+                </span>
+              ) : (
+                <span className="text-muted-foreground">En attente de votre position GPS…</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 p-4 space-y-4 pb-24">
         {/* Client info */}
@@ -217,6 +359,19 @@ const ProviderMission = () => {
           onStatusChange={handleStatusChange}
           isLoading={isUpdating}
         />
+
+        {/* Timeline */}
+        {events.length > 0 && <TrackingTimeline events={events} title="Chronologie de la mission" />}
+
+        {/* Quick contact */}
+        <Button
+          variant="soft"
+          className="w-full"
+          onClick={() => navigate("/app/conversations")}
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Ouvrir la messagerie client
+        </Button>
       </div>
     </div>
   );

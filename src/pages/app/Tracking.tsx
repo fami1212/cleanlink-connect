@@ -1,12 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route } from "lucide-react";
+import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route, Gauge, Navigation2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import BottomNav from "@/components/app/BottomNav";
 import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTrackingPreferences } from "@/hooks/useTrackingPreferences";
+import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
+
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+};
 
 const serviceTypeLabels: Record<string, string> = {
   fosse_septique: "Vidange fosse septique",
@@ -42,10 +55,21 @@ const Tracking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
   const [providerPos, setProviderPos] = useState<{ lat: number; lng: number } | null>(null);
-  const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
-  const [history, setHistory] = useState<{ lat: number; lng: number }[]>([]);
-  const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean }>({});
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
+  const [history, setHistory] = useState<{ lat: number; lng: number; at: Date; speed: number | null }[]>([]);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean; delayed?: boolean }>({});
   const initialEtaRef = useRef<number | null>(null);
+  const lastEtaBucketRef = useRef<number | null>(null);
+  const lastStatusRef = useRef<string | null>(null);
+  const { prefs } = useTrackingPreferences();
+
+  const pushEvent = (ev: Omit<TimelineEvent, "id" | "at"> & { at?: Date }) => {
+    setEvents((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: ev.at ?? new Date(), ...ev },
+    ]);
+  };
 
   const orderId = location.state?.orderId || currentOrder?.id;
   const order = orders.find(o => o.id === orderId) || currentOrder;
@@ -112,66 +136,152 @@ const Tracking = () => {
     return () => { supabase.removeChannel(channel); };
   }, [order?.provider_id]);
 
-  // Compute ETA via OSRM when provider position changes (live mission)
+  // Status changes → timeline events
+  useEffect(() => {
+    if (!status) return;
+    if (lastStatusRef.current === status) return;
+    const prev = lastStatusRef.current;
+    lastStatusRef.current = status;
+    if (status === "accepted") {
+      pushEvent({ type: "start", label: "Mission acceptée", detail: "Le prestataire est en route" });
+    } else if (status === "in_progress") {
+      pushEvent({ type: "status", label: "Intervention en cours", detail: "Le prestataire est sur place" });
+    } else if (status === "completed") {
+      pushEvent({ type: "arrived", label: "Mission terminée", detail: "Intervention clôturée" });
+    } else if (status === "cancelled") {
+      pushEvent({ type: "delay", label: "Mission annulée" });
+    } else if (status === "pending" && prev === null) {
+      pushEvent({ type: "status", label: "Demande envoyée", detail: "Recherche d'un prestataire…" });
+    }
+  }, [status]);
+
+  // Compute ETA (OSRM with haversine + last-speed fallback) when provider position changes
   useEffect(() => {
     if (!order?.latitude || !order?.longitude || !providerPos) return;
     if (status !== "accepted" && status !== "in_progress") return;
     let cancelled = false;
-    const url = `https://router.project-osrm.org/route/v1/driving/${providerPos.lng},${providerPos.lat};${order.longitude},${order.latitude}?overview=false`;
-    fetch(url)
+    const dest = { lat: Number(order.latitude), lng: Number(order.longitude) };
+
+    const applyEta = (minutes: number, distanceKm: number, source: "osrm" | "estimated") => {
+      if (cancelled) return;
+      setEta({ minutes, distanceKm, source });
+      if (initialEtaRef.current === null) {
+        initialEtaRef.current = minutes;
+        pushEvent({
+          type: "eta",
+          label: `ETA initiale: ${minutes} min`,
+          detail: `${distanceKm} km • ${source === "osrm" ? "itinéraire calculé" : "estimation locale"}`,
+        });
+        lastEtaBucketRef.current = Math.round(minutes / 5) * 5;
+      } else {
+        const bucket = Math.round(minutes / 5) * 5;
+        if (bucket !== lastEtaBucketRef.current) {
+          lastEtaBucketRef.current = bucket;
+          pushEvent({
+            type: "eta",
+            label: `ETA mise à jour: ${minutes} min`,
+            detail: `${distanceKm} km restants${source === "estimated" ? " (estimation)" : ""}`,
+          });
+        }
+      }
+
+      const distM = distanceKm * 1000;
+      const threshold = prefs.proximityThreshold;
+      if (prefs.arrivalAlerts && distM <= 200 && !arrivalNotifiedRef.current.arrived) {
+        arrivalNotifiedRef.current.arrived = true;
+        pushEvent({ type: "arrived", label: "Prestataire arrivé", detail: "À moins de 200 m" });
+        toast.success("Votre prestataire est arrivé à proximité 🚛", { duration: 6000 });
+        if (order.client_id) {
+          supabase.from("notifications").insert({
+            user_id: order.client_id,
+            title: "Prestataire arrivé",
+            message: "Le prestataire est à moins de 200 m de votre adresse.",
+            type: "arrival",
+            data: { order_id: order.id },
+          });
+        }
+      } else if (prefs.proximityAlerts && distM <= threshold && !arrivalNotifiedRef.current.near) {
+        arrivalNotifiedRef.current.near = true;
+        const label = threshold < 1000 ? `${threshold} m` : `${threshold / 1000} km`;
+        pushEvent({ type: "approaching", label: "Prestataire à proximité", detail: `À ≈ ${label}` });
+        toast(`Votre prestataire approche (≈${label})`, { duration: 5000 });
+        if (order.client_id) {
+          supabase.from("notifications").insert({
+            user_id: order.client_id,
+            title: "Prestataire à proximité",
+            message: `Le prestataire est à environ ${label}.`,
+            type: "approaching",
+            data: { order_id: order.id },
+          });
+        }
+      }
+
+      if (
+        prefs.delayAlerts &&
+        initialEtaRef.current &&
+        minutes > initialEtaRef.current + prefs.delayThresholdMin &&
+        !arrivalNotifiedRef.current.delayed
+      ) {
+        arrivalNotifiedRef.current.delayed = true;
+        pushEvent({
+          type: "delay",
+          label: "Retard détecté",
+          detail: `Nouvelle ETA ${minutes} min (initial ${initialEtaRef.current} min)`,
+        });
+        toast.warning(`Retard estimé: nouvelle ETA ${minutes} min`);
+        if (order.client_id) {
+          supabase.from("notifications").insert({
+            user_id: order.client_id,
+            title: "Retard du prestataire",
+            message: `Nouvelle estimation d'arrivée: ${minutes} min.`,
+            type: "delay",
+            data: { order_id: order.id, eta: minutes },
+          });
+        }
+      }
+    };
+
+    const fallback = () => {
+      const distanceKm = Math.round(haversineKm(providerPos, dest) * 10) / 10;
+      // Determine speed (km/h): last 2 history points, else last point's speed (m/s), else default 25 km/h
+      let speedKmh = 25;
+      const recent = history.slice(-3);
+      if (recent.length >= 2) {
+        const a = recent[recent.length - 2];
+        const b = recent[recent.length - 1];
+        const dKm = haversineKm(a, b);
+        const dH = (b.at.getTime() - a.at.getTime()) / 3600000;
+        if (dH > 0 && dKm > 0) speedKmh = Math.min(80, Math.max(5, dKm / dH));
+      } else if (recent.length === 1 && recent[0].speed) {
+        speedKmh = Math.min(80, Math.max(5, recent[0].speed * 3.6));
+      }
+      const minutes = Math.max(1, Math.round((distanceKm / speedKmh) * 60));
+      applyEta(minutes, distanceKm, "estimated");
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const url = `https://router.project-osrm.org/route/v1/driving/${providerPos.lng},${providerPos.lat};${dest.lng},${dest.lat}?overview=false`;
+    fetch(url, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
+        clearTimeout(timeout);
         const route = data?.routes?.[0];
-        if (cancelled || !route) return;
+        if (cancelled) return;
+        if (!route) return fallback();
         const minutes = Math.max(1, Math.round(route.duration / 60));
         const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
-        setEta({ minutes, distanceKm });
-        if (initialEtaRef.current === null) initialEtaRef.current = minutes;
-
-        const distM = distanceKm * 1000;
-        if (distM <= 200 && !arrivalNotifiedRef.current.arrived) {
-          arrivalNotifiedRef.current.arrived = true;
-          toast.success("Votre prestataire est arrivé à proximité 🚛", { duration: 6000 });
-          if (order.client_id) {
-            supabase.from("notifications").insert({
-              user_id: order.client_id,
-              title: "Prestataire arrivé",
-              message: "Le prestataire est à moins de 200 m de votre adresse.",
-              type: "arrival",
-              data: { order_id: order.id },
-            });
-          }
-        } else if (distM <= 500 && !arrivalNotifiedRef.current.near) {
-          arrivalNotifiedRef.current.near = true;
-          toast("Votre prestataire approche (≈500 m)", { duration: 5000 });
-          if (order.client_id) {
-            supabase.from("notifications").insert({
-              user_id: order.client_id,
-              title: "Prestataire à proximité",
-              message: "Le prestataire est à environ 500 m.",
-              type: "approaching",
-              data: { order_id: order.id },
-            });
-          }
-        }
-
-        if (initialEtaRef.current && minutes > initialEtaRef.current + 10 && !(arrivalNotifiedRef.current as any).delayed) {
-          (arrivalNotifiedRef.current as any).delayed = true;
-          toast.warning(`Retard estimé: nouvelle ETA ${minutes} min`);
-          if (order.client_id) {
-            supabase.from("notifications").insert({
-              user_id: order.client_id,
-              title: "Retard du prestataire",
-              message: `Nouvelle estimation d'arrivée: ${minutes} min.`,
-              type: "delay",
-              data: { order_id: order.id, eta: minutes },
-            });
-          }
-        }
+        applyEta(minutes, distanceKm, "osrm");
       })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [providerPos?.lat, providerPos?.lng, order?.latitude, order?.longitude, order?.id, order?.client_id, status]);
+      .catch(() => {
+        clearTimeout(timeout);
+        if (!cancelled) fallback();
+      });
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [providerPos?.lat, providerPos?.lng, order?.latitude, order?.longitude, order?.id, order?.client_id, status, prefs.proximityAlerts, prefs.proximityThreshold, prefs.arrivalAlerts, prefs.delayAlerts, prefs.delayThresholdMin]);
 
   // Load route history (and subscribe live) for the order
   useEffect(() => {
@@ -179,10 +289,18 @@ const Tracking = () => {
     const fetchHistory = async () => {
       const { data } = await (supabase as any)
         .from("order_tracks")
-        .select("latitude, longitude")
+        .select("latitude, longitude, recorded_at, speed")
         .eq("order_id", order.id)
         .order("recorded_at", { ascending: true });
-      if (data) setHistory(data.map((d: any) => ({ lat: Number(d.latitude), lng: Number(d.longitude) })));
+      if (data)
+        setHistory(
+          data.map((d: any) => ({
+            lat: Number(d.latitude),
+            lng: Number(d.longitude),
+            at: new Date(d.recorded_at),
+            speed: d.speed !== null && d.speed !== undefined ? Number(d.speed) : null,
+          }))
+        );
     };
     fetchHistory();
 
@@ -193,7 +311,15 @@ const Tracking = () => {
         { event: "INSERT", schema: "public", table: "order_tracks", filter: `order_id=eq.${order.id}` },
         (payload) => {
           const p: any = payload.new;
-          setHistory((prev) => [...prev, { lat: Number(p.latitude), lng: Number(p.longitude) }]);
+          setHistory((prev) => [
+            ...prev,
+            {
+              lat: Number(p.latitude),
+              lng: Number(p.longitude),
+              at: new Date(p.recorded_at),
+              speed: p.speed !== null && p.speed !== undefined ? Number(p.speed) : null,
+            },
+          ]);
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -368,7 +494,7 @@ const Tracking = () => {
               ? { lat: Number(order.latitude), lng: Number(order.longitude) }
               : undefined
           }
-          historyPath={history.length >= 2 ? history : undefined}
+          historyPath={history.length >= 2 ? history.map((h) => ({ lat: h.lat, lng: h.lng })) : undefined}
         />
       ) : (
         <div className="relative h-64 bg-gradient-to-br from-secondary/20 to-accent/20">
@@ -383,29 +509,60 @@ const Tracking = () => {
         </div>
       )}
 
-      {/* ETA indicator */}
+      {/* ETA premium card */}
       {(status === "accepted" || status === "in_progress") && (
-        <div className="px-4 -mt-4 relative z-10">
-          <div className="bg-card rounded-xl shadow-lg p-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <Clock className="w-5 h-5 text-primary" />
+        <div className="px-4 -mt-6 relative z-10">
+          <div className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 p-4">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                  <div className="relative w-11 h-11 bg-primary rounded-full flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                    Arrivée estimée
+                  </p>
+                  <p className="font-display text-2xl font-bold text-foreground leading-tight">
+                    {eta ? `${eta.minutes} min` : "Calcul…"}
+                  </p>
+                </div>
+                {eta && (
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Distance</p>
+                    <p className="font-semibold text-foreground">{eta.distanceKm} km</p>
+                  </div>
+                )}
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground text-sm">Arrivée estimée</p>
-                <p className="text-xs text-muted-foreground">
-                  {eta
-                    ? `≈ ${eta.minutes} min • ${eta.distanceKm} km restants`
-                    : "Calcul en cours…"}
-                </p>
-              </div>
-              {eta && eta.distanceKm * 1000 <= 500 && (
-                <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 border-t border-border text-xs">
+              {eta?.source === "estimated" ? (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Gauge className="w-3 h-3" /> Estimation locale (OSRM indisponible)
+                </span>
+              ) : eta ? (
+                <span className="flex items-center gap-1 text-primary">
+                  <Navigation2 className="w-3 h-3" /> Itinéraire temps réel
+                </span>
+              ) : (
+                <span className="text-muted-foreground">En attente de la position du prestataire…</span>
+              )}
+              {eta && eta.distanceKm * 1000 <= prefs.proximityThreshold && (
+                <span className="ml-auto px-2 py-0.5 bg-accent/15 text-accent font-medium rounded-full">
                   À proximité
                 </span>
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Timeline */}
+      {(status !== "pending") && events.length > 0 && (
+        <div className="px-4 mt-4">
+          <TrackingTimeline events={events} />
         </div>
       )}
 
@@ -498,7 +655,7 @@ const Tracking = () => {
                 <Phone className="w-4 h-4 mr-2" />
                 Appeler
               </Button>
-              <Button variant="softBlue" className="flex-1">
+              <Button variant="softBlue" className="flex-1" onClick={() => navigate("/app/conversations")}>
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Message
               </Button>
