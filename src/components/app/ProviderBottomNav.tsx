@@ -20,27 +20,33 @@ const ProviderBottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border safe-area-bottom">
-      <div className="flex items-center justify-around h-16">
-        {navItems.map((item) => {
-          const active = isActive(item.path);
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={cn(
-                "flex flex-col items-center gap-0.5 transition-colors relative w-full h-full justify-center",
-                active ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              {active && (
-                <motion.div layoutId="provider-nav-indicator" className="absolute top-0 w-8 h-0.5 bg-primary rounded-full" />
-              )}
-              <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </button>
-          );
-        })}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom pointer-events-none">
+      <div className="px-3 pb-3 pt-2 flex justify-center pointer-events-auto">
+        <div className="glass-strong shadow-float rounded-2xl border border-foreground/5 flex items-center gap-1 p-1.5 w-full max-w-md">
+          {navItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  "relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl transition-colors",
+                  active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {active && (
+                  <motion.div
+                    layoutId="provider-nav-pill"
+                    className="absolute inset-0 bg-gradient-emerald rounded-xl shadow-green"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <item.icon className="relative w-5 h-5" strokeWidth={active ? 2.4 : 2} />
+                <span className="relative text-[10px] font-semibold">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
