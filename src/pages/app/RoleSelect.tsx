@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { User, Truck, Building2, MapPin, RefreshCw } from "lucide-react";
+import { User, Truck, Building2, MapPin, RefreshCw, ArrowRight, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 import logo from "@/assets/linkeco-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -11,7 +12,6 @@ const RoleSelect = () => {
   const { user, loading: authLoading } = useAuth();
   const { roles, loading: roleLoading, addRole } = useUserRole();
 
-  // Auto-redirect if user is already logged in and has a role
   useEffect(() => {
     if (!authLoading && !roleLoading && user) {
       if (roles.includes("provider")) {
@@ -24,11 +24,9 @@ const RoleSelect = () => {
 
   const handleRoleSelect = async (roleType: "client" | "provider" | "authority", path: string) => {
     if (user) {
-      // User is logged in, add role and navigate
       await addRole(roleType);
       navigate(path, { replace: true });
     } else {
-      // Not logged in, go to auth with intended role
       navigate("/app/auth", { state: { intendedRole: roleType, redirectTo: path } });
     }
   };
@@ -40,6 +38,8 @@ const RoleSelect = () => {
       description: "Commander une vidange",
       roleType: "client" as const,
       path: "/app",
+      gradient: "from-primary to-primary-glow",
+      accentColor: "primary",
     },
     {
       icon: Truck,
@@ -47,6 +47,8 @@ const RoleSelect = () => {
       description: "Recevoir des missions",
       roleType: "provider" as const,
       path: "/app/provider",
+      gradient: "from-[hsl(43_70%_50%)] to-[hsl(38_85%_58%)]",
+      accentColor: "accent",
     },
     {
       icon: Building2,
@@ -54,10 +56,11 @@ const RoleSelect = () => {
       description: "Gérer l'assainissement",
       roleType: "authority" as const,
       path: "/app",
+      gradient: "from-[hsl(178_50%_25%)] to-[hsl(178_45%_40%)]",
+      accentColor: "secondary",
     },
   ];
 
-  // Show loading while checking auth
   if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -67,68 +70,88 @@ const RoleSelect = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-background flex flex-col safe-area-top safe-area-bottom relative overflow-hidden">
+      {/* Background mesh */}
+      <div className="absolute inset-0 bg-gradient-mesh opacity-70 pointer-events-none" />
+      <motion.div
+        className="absolute -top-20 -right-20 w-72 h-72 bg-accent/15 rounded-full blur-3xl pointer-events-none"
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 8, repeat: Infinity }}
+      />
+
       {/* Header */}
-      <div className="p-6 text-center">
-        <img src={logo} alt="Link'eco" className="h-16 mx-auto mb-4" />
-        <h1 className="font-display text-xl font-bold text-foreground">
-          Choisir un rôle
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative px-6 pt-8 pb-6 text-center"
+      >
+        <img src={logo} alt="Link'eco" className="h-14 mx-auto mb-5" />
+        <div className="inline-flex items-center gap-1.5 glass rounded-full px-3 py-1 mb-3">
+          <Sparkles className="w-3 h-3 text-accent" />
+          <span className="text-[11px] font-semibold text-foreground tracking-wide">Choisissez votre espace</span>
+        </div>
+        <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">
+          Bienvenue {user ? user.user_metadata?.full_name?.split(" ")[0] || "" : ""}
         </h1>
-        {user && (
-          <p className="text-sm text-muted-foreground mt-1">
-            Bienvenue, {user.user_metadata?.full_name || user.email?.split("@")[0]}
-          </p>
-        )}
-      </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Comment souhaitez-vous utiliser Link'eco ?
+        </p>
+      </motion.div>
 
       {/* Role cards */}
-      <div className="flex-1 px-6 space-y-4">
-        {roleOptions.map((role) => (
-          <button
+      <div className="relative flex-1 px-5 space-y-3">
+        {roleOptions.map((role, i) => (
+          <motion.button
             key={role.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => handleRoleSelect(role.roleType, role.path)}
-            className="w-full flex items-center gap-4 p-5 bg-card border border-border rounded-2xl text-left hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
+            className="group relative w-full flex items-center gap-4 p-4 bg-card border border-border rounded-2xl text-left hover:border-foreground/15 hover:shadow-float transition-all overflow-hidden"
           >
-            <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <role.icon className="w-7 h-7 text-primary" />
+            {/* Halo */}
+            <div className={`absolute -left-8 -top-8 w-28 h-28 bg-gradient-to-br ${role.gradient} opacity-0 group-hover:opacity-20 blur-2xl rounded-full transition-opacity`} />
+
+            <div className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${role.gradient} flex items-center justify-center shrink-0 shadow-md`}>
+              <role.icon className="w-7 h-7 text-white" strokeWidth={2.2} />
             </div>
-            <div className="flex-1">
-              <h3 className="font-display font-semibold text-foreground">
+            <div className="relative flex-1 min-w-0">
+              <h3 className="font-display font-bold text-foreground text-base">
                 {role.title}
               </h3>
               <p className="text-sm text-muted-foreground">{role.description}</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <svg
-                className="w-4 h-4 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+            <div className="relative w-9 h-9 rounded-full bg-foreground/5 group-hover:bg-foreground group-hover:text-background flex items-center justify-center transition-all">
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </div>
-          </button>
+          </motion.button>
         ))}
       </div>
 
-      {/* Location info */}
-      <div className="px-6 py-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4" />
-          <span>Dakar, Sénégal</span>
+      {/* Location */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="relative px-6 py-4 flex justify-center"
+      >
+        <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground glass rounded-full px-3 py-1.5">
+          <MapPin className="w-3.5 h-3.5 text-primary" />
+          <span className="font-medium">Dakar, Sénégal</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Footer */}
-      <div className="px-6 pb-6">
-        <p className="text-xs text-center text-muted-foreground mb-4">
-          En continuant, vous acceptez nos conditions d'utilisation
+      <div className="relative px-6 pb-6">
+        <p className="text-[11px] text-center text-muted-foreground/70 mb-3 leading-relaxed">
+          En continuant, vous acceptez nos <span className="underline">conditions d'utilisation</span>
         </p>
         {!user && (
-          <Button 
-            variant="soft" 
-            className="w-full"
+          <Button
+            variant="ghost"
+            className="w-full rounded-xl hover:bg-foreground/5"
             onClick={() => navigate("/app/auth")}
           >
             Déjà un compte ? <span className="text-primary font-bold ml-1">Connexion</span>
