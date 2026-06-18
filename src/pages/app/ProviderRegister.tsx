@@ -91,13 +91,8 @@ const ProviderRegister = () => {
 
     setLoading(true);
 
-    // Add provider role
-    const { error: roleError } = await addRole("provider");
-    if (roleError) {
-      console.error("Error adding role:", roleError);
-    }
-
-    // Create provider profile
+    // Create provider profile FIRST (with required documents) so the
+    // role-insert policy can verify the user has uploaded documents.
     const { error } = await createProvider({
       company_name: formData.companyName || null,
       vehicle_type: formData.vehicleType,
@@ -107,6 +102,14 @@ const ProviderRegister = () => {
       license_url: documents.licenseUrl,
       vehicle_registration_url: documents.vehicleRegistrationUrl,
     });
+
+    // Then add provider role (RLS verifies provider row with documents exists)
+    if (!error) {
+      const { error: roleError } = await addRole("provider");
+      if (roleError) {
+        console.error("Error adding role:", roleError);
+      }
+    }
 
     setLoading(false);
 
