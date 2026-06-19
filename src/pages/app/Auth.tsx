@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ArrowLeft, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/linkeco-logo.png";
 
 const emailSchema = z.string().email("Email invalide");
@@ -24,19 +25,13 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get intended role and redirect from location state
   const intendedRole = location.state?.intendedRole;
   const redirectTo = location.state?.redirectTo;
 
-  // Auto-redirect if user is already logged in
   useEffect(() => {
     if (!loading && !roleLoading && user) {
-      // User is logged in, determine where to redirect
       if (redirectTo && intendedRole) {
-        // Add the intended role and redirect
-        addRole(intendedRole).then(() => {
-          navigate(redirectTo, { replace: true });
-        });
+        addRole(intendedRole).then(() => navigate(redirectTo, { replace: true }));
       } else if (roles.includes("provider")) {
         navigate("/app/provider", { replace: true });
       } else if (roles.includes("client") || roles.length > 0) {
@@ -65,15 +60,10 @@ const Auth = () => {
     if (isLogin) {
       const { error } = await signIn(email, password);
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          toast.error("Email ou mot de passe incorrect");
-        } else {
-          toast.error("Erreur de connexion");
-        }
+        toast.error(error.message.includes("Invalid login credentials") ? "Email ou mot de passe incorrect" : "Erreur de connexion");
         setIsSubmitting(false);
       } else {
         toast.success("Connexion réussie!");
-        // Redirect will happen via useEffect when user state updates
       }
     } else {
       if (!fullName.trim()) {
@@ -81,18 +71,12 @@ const Auth = () => {
         setIsSubmitting(false);
         return;
       }
-
       const { error } = await signUp(email, password, fullName);
       if (error) {
-        if (error.message.includes("already registered")) {
-          toast.error("Cet email est déjà utilisé");
-        } else {
-          toast.error("Erreur d'inscription");
-        }
+        toast.error(error.message.includes("already registered") ? "Cet email est déjà utilisé" : "Erreur d'inscription");
         setIsSubmitting(false);
       } else {
         toast.success("Compte créé avec succès!");
-        // Redirect will happen via useEffect when user state updates
       }
     }
   };
@@ -106,95 +90,133 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/10 to-background flex flex-col safe-area-top safe-area-bottom">
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
-        <img src={logo} alt="Link'eco" className="h-16 mb-8" />
-        
-        <div className="w-full max-w-sm">
-          <h1 className="font-display text-2xl font-bold text-foreground text-center mb-2">
-            {isLogin ? "Connexion" : "Inscription"}
-          </h1>
-          <p className="text-muted-foreground text-center mb-8">
-            {isLogin 
-              ? "Connectez-vous pour commander" 
-              : "Créez votre compte Link'eco"}
-          </p>
+    <div className="min-h-screen relative overflow-hidden bg-gradient-hero-dark safe-area-top safe-area-bottom">
+      <div className="absolute inset-0 noise opacity-40 pointer-events-none" />
+      <div className="absolute -top-32 -right-20 w-[28rem] h-[28rem] rounded-full bg-accent/15 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-20 w-[28rem] h-[28rem] rounded-full bg-primary-glow/25 blur-3xl pointer-events-none" />
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div>
-                <Label htmlFor="fullName">Nom complet</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ibrahima Diallo"
-                  className="mt-1"
-                />
-              </div>
-            )}
+      {/* Back */}
+      <button
+        onClick={() => navigate("/")}
+        className="absolute top-6 left-5 z-10 flex items-center gap-1.5 text-background/70 hover:text-background text-sm transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Retour
+      </button>
 
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@exemple.com"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••"
-                className="mt-1"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              variant="hero"
-              size="xl"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting 
-                ? "Chargement..." 
-                : isLogin 
-                  ? "Se connecter" 
-                  : "S'inscrire"}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isLogin 
-                ? "Pas de compte ? S'inscrire" 
-                : "Déjà un compte ? Se connecter"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Back to landing */}
-      <div className="p-6 text-center">
-        <button
-          onClick={() => navigate("/")}
-          className="text-sm text-muted-foreground hover:text-foreground"
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-5 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center gap-3 mb-8"
         >
-          ← Retour au site
-        </button>
+          <img src={logo} alt="Link'eco" className="h-14" />
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-accent/80">
+            <span className="h-px w-6 bg-accent/50" />
+            Plateforme certifiée ONAS
+            <span className="h-px w-6 bg-accent/50" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="w-full max-w-sm glass-dark rounded-3xl p-7 shadow-float"
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={isLogin ? "login" : "signup"}
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <h1 className="font-display text-3xl font-bold text-background tracking-tight">
+                {isLogin ? "Bon retour." : "Créer un compte."}
+              </h1>
+              <p className="text-background/60 text-sm mt-1.5 mb-7">
+                {isLogin ? "Connectez-vous pour continuer" : "Rejoignez Link'eco en 30 secondes"}
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fullName" className="text-background/80 text-xs uppercase tracking-wider">Nom complet</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Ibrahima Diallo"
+                      className="bg-white/5 border-white/10 text-background placeholder:text-background/30 h-12 rounded-xl focus-visible:border-accent focus-visible:ring-accent/20"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-background/80 text-xs uppercase tracking-wider">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@exemple.com"
+                    className="bg-white/5 border-white/10 text-background placeholder:text-background/30 h-12 rounded-xl focus-visible:border-accent focus-visible:ring-accent/20"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-background/80 text-xs uppercase tracking-wider">Mot de passe</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••"
+                    className="bg-white/5 border-white/10 text-background placeholder:text-background/30 h-12 rounded-xl focus-visible:border-accent focus-visible:ring-accent/20"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  size="xl"
+                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-xl shadow-gold mt-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Chargement..." : isLogin ? "Se connecter" : "Créer mon compte"}
+                </Button>
+              </form>
+
+              <div className="mt-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[10px] uppercase tracking-widest text-background/40">ou</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="mt-5 w-full text-sm text-background/70 hover:text-background transition-colors"
+              >
+                {isLogin ? (
+                  <>Pas de compte ? <span className="text-accent font-semibold">S'inscrire</span></>
+                ) : (
+                  <>Déjà un compte ? <span className="text-accent font-semibold">Se connecter</span></>
+                )}
+              </button>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mt-6 flex items-center gap-1.5 text-xs text-background/40"
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Vos données sont chiffrées de bout en bout
+        </motion.div>
       </div>
     </div>
   );
