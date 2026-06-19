@@ -127,8 +127,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="bg-card safe-area-top border-b border-border sticky top-0 z-30">
+      {/* Header — glass */}
+      <div className="glass-strong safe-area-top sticky top-0 z-30 border-b border-border/50">
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-9" />
           <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ const Home = () => {
             <NotificationBell />
             <button
               onClick={() => navigate("/app/profile")}
-              className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden"
+              className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden ring-2 ring-accent/20"
             >
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -156,17 +156,18 @@ const Home = () => {
       </div>
 
       {/* Greeting */}
-      <div className="px-4 pt-6 pb-3 relative z-0">
-        <motion.p className="text-sm text-muted-foreground mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          Bonjour 👋
-        </motion.p>
+      <div className="px-4 pt-7 pb-4 relative z-0">
+        <motion.div className="flex items-center gap-2 mb-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <span className="h-px w-6 bg-accent" />
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Bonjour</p>
+        </motion.div>
         <motion.h1
-          className="font-display text-2xl font-bold text-foreground"
+          className="font-display text-3xl font-bold text-foreground tracking-tight"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
         >
-          {displayName}
+          {displayName}<span className="text-accent">.</span>
         </motion.h1>
       </div>
 

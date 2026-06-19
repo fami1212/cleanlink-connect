@@ -83,8 +83,8 @@ const ProviderDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="bg-card safe-area-top border-b border-border">
+      {/* Header — glass */}
+      <div className="glass-strong safe-area-top border-b border-border/50 sticky top-0 z-30">
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-9" />
           <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ const ProviderDashboard = () => {
               <Volume2 className="w-4 h-4" />
             </button>
             <NotificationBell />
-            <button onClick={() => navigate("/app/provider/profile")} className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center overflow-hidden">
+            <button onClick={() => navigate("/app/provider/profile")} className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center overflow-hidden ring-2 ring-accent/20">
               {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-bold text-primary-foreground">{initials}</span>}
             </button>
           </div>
