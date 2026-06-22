@@ -88,26 +88,30 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border px-4 py-3">
+      {/* Glass header */}
+      <div className="sticky top-0 z-30 glass-strong border-b border-border/40 safe-area-top px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/app/messages")} className="p-1">
+          <button
+            onClick={() => navigate("/app/messages")}
+            className="w-10 h-10 rounded-full glass flex items-center justify-center ring-1 ring-border/60 hover:ring-accent/40 transition-all"
+          >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-          <Avatar className="w-9 h-9">
+          <Avatar className="w-10 h-10 ring-2 ring-accent/30">
             {otherUser.avatar && <AvatarImage src={otherUser.avatar} />}
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+            <AvatarFallback className="bg-gradient-emerald text-primary-foreground text-sm font-bold">
               {otherUser.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="text-sm font-semibold text-foreground">{otherUser.name}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-sm font-bold text-foreground truncate">{otherUser.name}</h1>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-accent font-semibold">En ligne</p>
           </div>
         </div>
       </div>
 
       {/* Messages area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-3 bg-gradient-to-b from-muted/30 to-background">
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -115,9 +119,12 @@ const Chat = () => {
             ))}
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground text-sm text-center">
-              Envoyez votre premier message ! 👋
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-emerald flex items-center justify-center mb-4 shadow-green">
+              <span className="text-2xl">👋</span>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Envoyez votre premier message
             </p>
           </div>
         ) : (
@@ -126,21 +133,21 @@ const Chat = () => {
             return (
               <div
                 key={msg.id}
-                className={cn("flex", isMine ? "justify-end" : "justify-start")}
+                className={cn("flex animate-fade-in", isMine ? "justify-end" : "justify-start")}
               >
                 <div
                   className={cn(
-                    "max-w-[75%] px-4 py-2.5 rounded-2xl text-sm",
+                    "max-w-[78%] px-4 py-2.5 rounded-2xl text-sm shadow-sm",
                     isMine
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted text-foreground rounded-bl-md"
+                      ? "bg-gradient-emerald text-primary-foreground rounded-br-md"
+                      : "bg-card border border-border text-foreground rounded-bl-md"
                   )}
                 >
-                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                  <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
                   <p
                     className={cn(
-                      "text-[10px] mt-1",
-                      isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+                      "text-[10px] mt-1 font-medium",
+                      isMine ? "text-primary-foreground/60" : "text-muted-foreground"
                     )}
                   >
                     {format(new Date(msg.created_at), "HH:mm", { locale: fr })}
@@ -153,20 +160,20 @@ const Chat = () => {
       </div>
 
       {/* Input area */}
-      <div className="sticky bottom-0 bg-card/95 backdrop-blur-xl border-t border-border p-3 safe-area-bottom">
+      <div className="sticky bottom-0 glass-strong border-t border-border/40 p-3 safe-area-bottom">
         <div className="flex items-center gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Votre message..."
-            className="flex-1 rounded-full bg-muted border-0 focus-visible:ring-1"
+            className="flex-1 rounded-full bg-muted/80 border-border/40 focus-visible:ring-1 focus-visible:ring-accent h-11"
           />
           <Button
             size="icon"
             onClick={handleSend}
             disabled={!input.trim() || sending}
-            className="rounded-full w-10 h-10 shrink-0"
+            className="rounded-full w-11 h-11 shrink-0 bg-gradient-gold text-accent-foreground hover:opacity-95 shadow-gold disabled:opacity-40 disabled:shadow-none"
           >
             <Send className="w-4 h-4" />
           </Button>

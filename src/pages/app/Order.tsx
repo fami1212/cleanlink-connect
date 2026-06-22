@@ -89,18 +89,21 @@ const Order = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="bg-card border-b border-border safe-area-top">
+      {/* Glass header */}
+      <div className="sticky top-0 z-30 glass-strong border-b border-border/40 safe-area-top">
         <div className="flex items-center gap-4 p-4">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            className="w-10 h-10 rounded-full glass flex items-center justify-center ring-1 ring-border/60 hover:ring-accent/40 transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="font-display text-lg font-semibold text-foreground">
-            Commander
-          </h1>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-accent font-semibold">Étape 1 / 2</p>
+            <h1 className="font-display text-lg font-bold text-foreground tracking-tight">
+              Nouvelle commande
+            </h1>
+          </div>
         </div>
       </div>
 
@@ -110,36 +113,40 @@ const Order = () => {
           onLocationSelect={handleLocationSelect}
           initialLat={14.6937}
           initialLng={-17.4441}
-          className="h-56"
+          className="h-64"
           interactive={true}
         />
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 p-4 space-y-4 -mt-6 relative z-10">
         {/* Address display */}
-        <div className="bg-card border border-border rounded-xl p-3">
-          <p className="text-sm text-muted-foreground mb-1">Adresse sélectionnée</p>
-          <p className="font-medium text-foreground">
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">Adresse sélectionnée</p>
+          </div>
+          <p className="font-medium text-foreground text-sm">
             {address || "Cliquez sur la carte ou utilisez la géolocalisation"}
           </p>
         </div>
 
         {/* Service selector */}
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block">
+          <label className="text-[10px] uppercase tracking-[0.16em] font-semibold text-muted-foreground mb-2 block px-1">
             Type de service
           </label>
           <button
             onClick={() => setShowServiceSelect(!showServiceSelect)}
-            className="w-full flex items-center justify-between p-4 bg-card border border-border rounded-xl"
+            className="w-full flex items-center justify-between p-4 bg-card border border-border rounded-2xl hover:border-accent/40 transition-colors"
           >
-            <span className="font-medium text-foreground">{selectedService}</span>
+            <span className="font-display font-semibold text-foreground">{selectedService}</span>
             <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showServiceSelect ? "rotate-180" : ""}`} />
           </button>
           
           {showServiceSelect && (
-            <div className="mt-2 bg-card border border-border rounded-xl overflow-hidden">
+            <div className="mt-2 bg-card border border-border rounded-2xl overflow-hidden shadow-lg animate-fade-in">
               {services.map((service) => (
                 <button
                   key={service}
@@ -147,8 +154,10 @@ const Order = () => {
                     setSelectedService(service);
                     setShowServiceSelect(false);
                   }}
-                  className={`w-full p-4 text-left hover:bg-muted transition-colors ${
-                    selectedService === service ? "bg-primary/10 text-primary" : "text-foreground"
+                  className={`w-full p-4 text-left transition-colors ${
+                    selectedService === service
+                      ? "bg-primary/10 text-primary font-semibold border-l-2 border-accent"
+                      : "text-foreground hover:bg-muted"
                   }`}
                 >
                   {service}
@@ -159,34 +168,34 @@ const Order = () => {
         </div>
 
         {/* Price estimate */}
-        <div className="bg-muted/50 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Prix estimé</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span key={star} className="text-xs">⭐</span>
-              ))}
+        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-hero-dark text-white noise">
+          <div className="absolute inset-0 bg-gradient-mesh opacity-40" />
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-semibold">Prix estimé</span>
+              <span className="text-[10px] uppercase tracking-[0.16em] text-accent font-semibold">À partir de</span>
             </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-bold text-primary">
-              {currentPrice.min.toLocaleString()} ~ {currentPrice.max.toLocaleString()}
-            </span>
-            <span className="text-sm text-muted-foreground">FCFA</span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-3xl font-bold text-aurora">
+                {currentPrice.min.toLocaleString()}
+              </span>
+              <span className="text-white/50 text-sm">~ {currentPrice.max.toLocaleString()} FCFA</span>
+            </div>
+            <p className="text-xs text-white/50 mt-2 font-light">Prestataires certifiés ONAS · Traçabilité incluse</p>
           </div>
         </div>
       </div>
 
       {/* Bottom CTA */}
-      <div className="p-4 bg-card border-t border-border safe-area-bottom">
+      <div className="p-4 glass-strong border-t border-border/40 safe-area-bottom">
         <Button
-          variant="hero"
           size="xl"
-          className="w-full"
+          className="w-full bg-gradient-gold text-accent-foreground hover:opacity-95 font-semibold h-14 rounded-2xl text-base shadow-gold"
           onClick={handleSubmit}
           disabled={isSubmitting || !address}
         >
-          {isSubmitting ? "Création..." : "Commander"}
+          {isSubmitting ? "Création..." : "Confirmer la commande"}
         </Button>
       </div>
     </div>

@@ -174,19 +174,20 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
-      {/* Premium header */}
-      <div className="relative bg-gradient-to-br from-primary via-primary to-accent safe-area-top overflow-hidden">
-        {/* Decorative blobs */}
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-accent/30 rounded-full blur-3xl" />
+      {/* Premium emerald-prestige header */}
+      <div className="relative bg-gradient-hero-dark safe-area-top overflow-hidden noise">
+        <div className="absolute inset-0 bg-gradient-mesh opacity-60" />
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-20 -left-12 w-72 h-72 bg-primary-glow/20 rounded-full blur-3xl" />
 
         <div className="relative px-5 pt-8 pb-20">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-accent font-semibold mb-4">Mon espace</p>
           <div className="flex items-start gap-4">
             <div className="relative">
               <motion.button
                 onClick={handleAvatarClick}
                 disabled={avatarUploading}
-                className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-xl ring-4 ring-white/20"
+                className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-float ring-2 ring-accent/40"
                 initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
               >
@@ -195,11 +196,11 @@ const Profile = () => {
                 ) : profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-2xl font-bold text-primary">{initials}</span>
+                  <span className="font-display text-2xl font-bold text-primary">{initials}</span>
                 )}
               </motion.button>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-xl flex items-center justify-center shadow-md">
-                <Camera className="w-3.5 h-3.5 text-primary" />
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-gradient-gold rounded-xl flex items-center justify-center shadow-gold">
+                <Camera className="w-3.5 h-3.5 text-accent-foreground" />
               </div>
               <input
                 ref={fileInputRef}
@@ -211,14 +212,14 @@ const Profile = () => {
             </div>
 
             <div className="flex-1 min-w-0 pt-1">
-              <h1 className="font-display text-xl font-bold text-white truncate">{displayName}</h1>
-              {phone && <p className="text-sm text-white/70 truncate">{phone}</p>}
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-white bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
-                  <Shield className="w-3 h-3" /> Client vérifié
+              <h1 className="font-display text-2xl font-bold text-white truncate tracking-tight">{displayName}</h1>
+              {phone && <p className="text-sm text-white/60 truncate font-light">{phone}</p>}
+              <div className="flex items-center gap-1.5 mt-2.5">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white glass-dark px-2.5 py-1 rounded-full">
+                  <Shield className="w-3 h-3 text-accent" /> Vérifié
                 </span>
                 {isProvider && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground bg-accent px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent-foreground bg-gradient-gold px-2.5 py-1 rounded-full shadow-gold">
                     <Sparkles className="w-3 h-3" /> Pro
                   </span>
                 )}
