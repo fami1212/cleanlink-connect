@@ -28,7 +28,7 @@ const BottomNav = () => {
                 onClick={() => navigate(item.path)}
                 className={cn(
                   "relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl transition-colors",
-                  isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-accent hover:bg-accent/10"
                 )}
               >
                 {isActive && (
