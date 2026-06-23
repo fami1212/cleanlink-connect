@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import AiAssistant from "./components/app/AiAssistant";
+import { useLocation } from "react-router-dom";
 
 // App pages
 import Auth from "./pages/app/Auth";
