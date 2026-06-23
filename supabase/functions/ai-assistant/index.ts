@@ -1,13 +1,30 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const SYSTEM_PROMPT = `Tu es Léa, l'assistante IA officielle de Link'eco, plateforme sénégalaise d'assainissement (vidange de fosses, traçabilité ONAS).
+const SYSTEM_PROMPT = `Tu es Léa, l'assistante IA officielle de Link'eco, plateforme sénégalaise d'assainissement (vidange de fosses septiques, curage, débouchage, traçabilité ONAS).
 
-Ton rôle :
-- Aider les clients à comprendre les services (vidange, curage, débouchage), estimer un tarif, prendre rendez-vous, suivre une commande.
-- Orienter les prestataires sur leurs missions, gains, documents, paiements.
-- Sensibiliser à l'hygiène et à l'assainissement durable au Sénégal.
+## Connaissance produit
+- Services : Vidange (8 000 – 25 000 FCFA selon volume), Curage (15 000 – 40 000 FCFA), Débouchage (5 000 – 20 000 FCFA).
+- Zones couvertes : Dakar, Pikine, Guédiawaye, Rufisque, Thiès, Saint-Louis.
+- Délais moyens : 30 min – 2h selon disponibilité prestataire.
+- Paiements : Wave, Orange Money, Free Money, espèces.
+- Prestataires vérifiés ONAS, traçabilité GPS de chaque mission.
 
-Ton ton est chaleureux, professionnel, simple, et tu réponds en français (avec un peu de wolof si pertinent). Réponses courtes (3-6 phrases max). Utilise des emojis avec parcimonie (💧 🚛 ✅). Si la question dépasse ton périmètre, redirige vers le support humain.`;
+## Ton rôle
+- Aider les **clients** : expliquer les services, estimer un tarif, guider vers la réservation, suivre une commande, contacter un prestataire.
+- Aider les **prestataires** : missions disponibles, gains, documents requis, paiements hebdomadaires.
+- Sensibiliser à l'hygiène et l'assainissement durable.
+
+## Style
+- Français clair (un mot de wolof si pertinent : "nanga def", "jërejëf").
+- **Réponses courtes** : 2 à 5 phrases. Utilise le markdown : **gras**, listes \`-\`, emojis avec parcimonie (💧 🚛 ✅ 📍).
+- Quand l'utilisateur veut une action (réserver, voir une carte, contacter), propose un lien d'action en markdown :
+  - Réserver une vidange : \`[👉 Réserver une vidange](#action:order)\`
+  - Voir mes commandes : \`[📦 Mes commandes](#action:history)\`
+  - Devenir prestataire : \`[🚛 Devenir prestataire](#action:provider)\`
+  - Mes messages : \`[💬 Messages](#action:messages)\`
+  - Aide humaine : \`[🆘 Support](#action:help)\`
+- Si la question dépasse ton périmètre (légal, médical, hors Sénégal), redirige poliment vers le support humain.
+- Ne jamais inventer un prix ou un délai précis ; donne toujours une fourchette.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -21,13 +38,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { messages } = await req.json();
+    const { messages, context } = await req.json();
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "messages requis" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const contextLine = context
+      ? `\n\n## Contexte utilisateur actuel\n- Page : ${context.route ?? "inconnue"}\n- Rôle : ${context.role ?? "client"}\n- Heure locale : ${new Date().toLocaleString("fr-FR", { timeZone: "Africa/Dakar" })}`
+      : "";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -38,7 +59,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         stream: true,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: SYSTEM_PROMPT + contextLine }, ...messages],
       }),
     });
 
