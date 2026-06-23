@@ -67,6 +67,7 @@ const App = () => (
             <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/favorites" element={<Favorites />} />
             <Route path="/app/messages" element={<Conversations />} />
+            <Route path="/app/conversations" element={<Conversations />} />
             <Route path="/app/chat/:conversationId" element={<Chat />} />
             
             {/* Provider routes */}
