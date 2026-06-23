@@ -132,14 +132,16 @@ const Home = () => {
         <div className="flex items-center justify-between p-4">
           <img src={logo} alt="Link'eco" className="h-9" />
           <div className="flex items-center gap-2">
-            {isProvider && (
-              <button
-                onClick={() => navigate("/app/provider")}
-                className="px-3 py-1.5 rounded-lg bg-accent/15 text-accent text-xs font-semibold hover:bg-accent/25 transition-colors"
-              >
-                🚛 Mode prestataire
-              </button>
-            )}
+            <button
+              onClick={() => navigate(isProvider ? "/app/provider" : "/app/profile")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                isProvider
+                  ? "bg-accent/15 text-accent hover:bg-accent/25"
+                  : "bg-gradient-gold text-accent-foreground shadow-gold hover:opacity-90"
+              }`}
+            >
+              {isProvider ? "🚛 Mode prestataire" : "✨ Devenir prestataire"}
+            </button>
             <NotificationBell />
             <button
               onClick={() => navigate("/app/profile")}
