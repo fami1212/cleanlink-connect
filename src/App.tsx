@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import AiAssistant from "./components/app/AiAssistant";
+import { useLocation } from "react-router-dom";
 
 // App pages
 import Auth from "./pages/app/Auth";
@@ -38,6 +40,57 @@ import ProviderDocuments from "./pages/app/ProviderDocuments";
 
 const queryClient = new QueryClient();
 
+const AppContent = () => {
+  const location = useLocation();
+  const showAssistant =
+    location.pathname.startsWith("/app") &&
+    !location.pathname.startsWith("/app/auth") &&
+    !location.pathname.startsWith("/app/onboarding");
+
+  return (
+    <>
+      <Routes>
+        {/* Landing page */}
+        <Route path="/" element={<Index />} />
+
+        {/* Mobile app routes */}
+        <Route path="/app/auth" element={<Auth />} />
+        <Route path="/app/onboarding" element={<Onboarding />} />
+        <Route path="/app/role-select" element={<RoleSelect />} />
+        <Route path="/app" element={<Home />} />
+        <Route path="/app/order" element={<Order />} />
+        <Route path="/app/payment" element={<Payment />} />
+        <Route path="/app/tracking" element={<Tracking />} />
+        <Route path="/app/profile" element={<Profile />} />
+        <Route path="/app/profile/edit" element={<ProfileEdit />} />
+        <Route path="/app/profile/history" element={<OrderHistory />} />
+        <Route path="/app/profile/payments" element={<PaymentMethods />} />
+        <Route path="/app/notifications" element={<Notifications />} />
+        <Route path="/app/profile/notification-settings" element={<NotificationSettings />} />
+        <Route path="/app/help" element={<Help />} />
+        <Route path="/app/settings" element={<Settings />} />
+        <Route path="/app/favorites" element={<Favorites />} />
+        <Route path="/app/messages" element={<Conversations />} />
+        <Route path="/app/conversations" element={<Conversations />} />
+        <Route path="/app/chat/:conversationId" element={<Chat />} />
+
+        {/* Provider routes */}
+        <Route path="/app/provider" element={<ProviderDashboard />} />
+        <Route path="/app/provider/mission" element={<ProviderMission />} />
+        <Route path="/app/provider/register" element={<ProviderRegister />} />
+        <Route path="/app/provider/earnings" element={<ProviderEarnings />} />
+        <Route path="/app/provider/reviews" element={<ProviderReviews />} />
+        <Route path="/app/provider/profile" element={<ProviderProfile />} />
+        <Route path="/app/provider/documents" element={<ProviderDocuments />} />
+
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      {showAssistant && <AiAssistant />}
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -45,43 +98,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Landing page */}
-            <Route path="/" element={<Index />} />
-            
-            {/* Mobile app routes */}
-            <Route path="/app/auth" element={<Auth />} />
-            <Route path="/app/onboarding" element={<Onboarding />} />
-            <Route path="/app/role-select" element={<RoleSelect />} />
-            <Route path="/app" element={<Home />} />
-            <Route path="/app/order" element={<Order />} />
-            <Route path="/app/payment" element={<Payment />} />
-            <Route path="/app/tracking" element={<Tracking />} />
-            <Route path="/app/profile" element={<Profile />} />
-            <Route path="/app/profile/edit" element={<ProfileEdit />} />
-            <Route path="/app/profile/history" element={<OrderHistory />} />
-            <Route path="/app/profile/payments" element={<PaymentMethods />} />
-            <Route path="/app/notifications" element={<Notifications />} />
-            <Route path="/app/profile/notification-settings" element={<NotificationSettings />} />
-            <Route path="/app/help" element={<Help />} />
-            <Route path="/app/settings" element={<Settings />} />
-            <Route path="/app/favorites" element={<Favorites />} />
-            <Route path="/app/messages" element={<Conversations />} />
-            <Route path="/app/conversations" element={<Conversations />} />
-            <Route path="/app/chat/:conversationId" element={<Chat />} />
-            
-            {/* Provider routes */}
-            <Route path="/app/provider" element={<ProviderDashboard />} />
-            <Route path="/app/provider/mission" element={<ProviderMission />} />
-            <Route path="/app/provider/register" element={<ProviderRegister />} />
-            <Route path="/app/provider/earnings" element={<ProviderEarnings />} />
-            <Route path="/app/provider/reviews" element={<ProviderReviews />} />
-            <Route path="/app/provider/profile" element={<ProviderProfile />} />
-            <Route path="/app/provider/documents" element={<ProviderDocuments />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppContent />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
@@ -89,3 +106,4 @@ const App = () => (
 );
 
 export default App;
+
