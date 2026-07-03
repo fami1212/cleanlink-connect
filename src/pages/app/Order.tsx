@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, Sparkles, Camera, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { ServiceType } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
 
 const serviceTypeMap: Record<string, ServiceType> = {
   "Vidange fosse septique": "fosse_septique",
@@ -29,6 +30,12 @@ const Order = () => {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [showServiceSelect, setShowServiceSelect] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiEstimate, setAiEstimate] = useState<null | { price_min: number; price_max: number; explanation: string; tips: string[]; eta_min: number }>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [photoAnalysis, setPhotoAnalysis] = useState<null | { fill_level: string; urgency: string; observations: string; recommended_service: string; safety_warnings: string[] }>(null);
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const services = [
     "Vidange fosse septique",
@@ -44,12 +51,69 @@ const Order = () => {
     "Curage canalisations": { min: 20000, max: 30000 },
   };
 
-  const currentPrice = priceRange[selectedService as keyof typeof priceRange] || { min: 25000, max: 30000 };
+  const currentPrice = aiEstimate
+    ? { min: aiEstimate.price_min, max: aiEstimate.price_max }
+    : priceRange[selectedService as keyof typeof priceRange] || { min: 25000, max: 30000 };
 
   const handleLocationSelect = (lat: number, lng: number, addr: string) => {
     setLatitude(lat);
     setLongitude(lng);
     setAddress(addr.split(",").slice(0, 3).join(","));
+  };
+
+  const runEstimation = async () => {
+    setEstimating(true);
+    setAiEstimate(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-estimate", {
+        body: {
+          service_type: serviceTypeMap[selectedService],
+          address,
+          urgency: selectedService === "Urgence débordement",
+          hour: new Date().getHours(),
+        },
+      });
+      if (error) throw error;
+      setAiEstimate(data);
+      toast.success("Estimation IA prête ✨");
+    } catch (e: any) {
+      toast.error("Estimation IA indisponible");
+    } finally {
+      setEstimating(false);
+    }
+  };
+
+  const handlePhoto = async (file: File) => {
+    setAnalyzingPhoto(true);
+    setPhotoAnalysis(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setPhotoPreview(dataUrl);
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-photo-analysis", {
+          body: { image_url: dataUrl, mime_type: file.type },
+        });
+        if (error) throw error;
+        setPhotoAnalysis(data);
+        // Auto-adjust service
+        const map: Record<string, string> = {
+          fosse_septique: "Vidange fosse septique",
+          latrines: "Vidange latrines",
+          urgence: "Urgence débordement",
+          curage: "Curage canalisations",
+        };
+        if (data.recommended_service && map[data.recommended_service]) {
+          setSelectedService(map[data.recommended_service]);
+        }
+        toast.success("Photo analysée 📸");
+      } catch (e) {
+        toast.error("Analyse photo indisponible");
+      } finally {
+        setAnalyzingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
@@ -167,13 +231,61 @@ const Order = () => {
           )}
         </div>
 
+        {/* AI photo analysis */}
+        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold text-foreground">Analyse IA par photo</span>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-accent font-bold">Nouveau</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Prends une photo de la fosse — Léa estime le volume, l'urgence et le service adapté.</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && handlePhoto(e.target.files[0])}
+          />
+          <Button
+            variant="outline"
+            className="w-full border-accent/40 hover:bg-accent/10"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={analyzingPhoto}
+          >
+            {analyzingPhoto ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse...</> : <><Camera className="w-4 h-4 mr-2" /> Prendre / choisir une photo</>}
+          </Button>
+          {photoPreview && (
+            <img src={photoPreview} alt="fosse" className="w-full h-32 object-cover rounded-xl" />
+          )}
+          {photoAnalysis && (
+            <div className="text-xs space-y-2 bg-card rounded-xl p-3 border border-border">
+              <p className="text-foreground">{photoAnalysis.observations}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-2 py-1 rounded-full bg-primary/10 text-primary font-semibold">Niveau: {photoAnalysis.fill_level}</span>
+                <span className="px-2 py-1 rounded-full bg-accent/10 text-accent font-semibold">Urgence: {photoAnalysis.urgency}</span>
+              </div>
+              {photoAnalysis.safety_warnings?.length > 0 && (
+                <div className="flex gap-2 items-start text-destructive">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>{photoAnalysis.safety_warnings.join(" · ")}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Price estimate */}
         <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-hero-dark text-white noise">
           <div className="absolute inset-0 bg-gradient-mesh opacity-40" />
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-semibold">Prix estimé</span>
+              <span className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-semibold">
+                {aiEstimate ? "Estimation IA" : "Prix estimé"}
+              </span>
               <span className="text-[10px] uppercase tracking-[0.16em] text-accent font-semibold">À partir de</span>
             </div>
             <div className="flex items-baseline gap-2">
@@ -182,7 +294,26 @@ const Order = () => {
               </span>
               <span className="text-white/50 text-sm">~ {currentPrice.max.toLocaleString()} FCFA</span>
             </div>
-            <p className="text-xs text-white/50 mt-2 font-light">Prestataires certifiés ONAS · Traçabilité incluse</p>
+            {aiEstimate?.explanation && (
+              <p className="text-xs text-white/70 mt-2">{aiEstimate.explanation}</p>
+            )}
+            {aiEstimate?.tips?.length ? (
+              <ul className="mt-2 space-y-1">
+                {aiEstimate.tips.map((t, i) => (
+                  <li key={i} className="text-xs text-white/60">• {t}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-white/50 mt-2 font-light">Prestataires certifiés ONAS · Traçabilité incluse</p>
+            )}
+            <button
+              onClick={runEstimation}
+              disabled={estimating}
+              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-accent hover:text-accent/80 transition-colors"
+            >
+              {estimating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              {estimating ? "Calcul IA..." : aiEstimate ? "Recalculer avec l'IA" : "Estimer avec l'IA"}
+            </button>
           </div>
         </div>
       </div>
