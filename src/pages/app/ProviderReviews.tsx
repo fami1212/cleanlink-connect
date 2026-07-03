@@ -114,6 +114,46 @@ const ProviderReviews = () => {
         </div>
       </div>
 
+      {/* AI summary */}
+      {reviewedOrders.length >= 3 && (
+        <div className="px-4 pb-2">
+          <div className="rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold text-foreground">Synthèse IA de tes avis</span>
+              {summarizing && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground ml-auto" />}
+            </div>
+            {aiSummary ? (
+              <div className="space-y-3">
+                <p className="text-sm text-foreground/90">{aiSummary.summary}</p>
+                {aiSummary.strengths?.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-primary font-bold mb-1">Points forts</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {aiSummary.strengths.map((s, i) => (
+                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {aiSummary.improvements?.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-accent font-bold mb-1">À améliorer</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {aiSummary.improvements.map((s, i) => (
+                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-accent/10 text-accent">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Analyse en cours...</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Stats cards */}
       <div className="px-4 pb-4">
         <div className="grid grid-cols-2 gap-3">
