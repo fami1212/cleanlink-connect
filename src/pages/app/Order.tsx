@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, Sparkles, Camera, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { ServiceType } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
 
 const serviceTypeMap: Record<string, ServiceType> = {
   "Vidange fosse septique": "fosse_septique",
