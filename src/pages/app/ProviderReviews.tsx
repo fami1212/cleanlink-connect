@@ -1,15 +1,43 @@
-import { ArrowLeft, Star, ThumbsUp, MessageCircle } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, MessageCircle, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useProviderStats } from "@/hooks/useProviderStats";
 import { useProviderOrders } from "@/hooks/useProviderOrders";
 import ProviderBottomNav from "@/components/app/ProviderBottomNav";
+import { supabase } from "@/integrations/supabase/client";
 
 const ProviderReviews = () => {
   const navigate = useNavigate();
   const { stats, loading } = useProviderStats();
   const { completedOrders } = useProviderOrders();
+  const [aiSummary, setAiSummary] = useState<null | { summary: string; strengths: string[]; improvements: string[]; sentiment: string }>(null);
+  const [summarizing, setSummarizing] = useState(false);
 
   const reviewedOrders = completedOrders.filter((order) => order.rating);
+
+  const runSummary = async () => {
+    setSummarizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-review-summary", {
+        body: {
+          reviews: reviewedOrders.slice(0, 30).map((o) => ({ rating: o.rating, notes: o.notes })),
+        },
+      });
+      if (error) throw error;
+      setAiSummary(data);
+    } catch (e) {
+      // silent
+    } finally {
+      setSummarizing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (reviewedOrders.length >= 3 && !aiSummary && !summarizing) {
+      runSummary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewedOrders.length]);
 
   if (loading) {
     return (
