@@ -30,6 +30,12 @@ const Order = () => {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [showServiceSelect, setShowServiceSelect] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiEstimate, setAiEstimate] = useState<null | { price_min: number; price_max: number; explanation: string; tips: string[]; eta_min: number }>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [photoAnalysis, setPhotoAnalysis] = useState<null | { fill_level: string; urgency: string; observations: string; recommended_service: string; safety_warnings: string[] }>(null);
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const services = [
     "Vidange fosse septique",
