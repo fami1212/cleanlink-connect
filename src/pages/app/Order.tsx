@@ -231,13 +231,61 @@ const Order = () => {
           )}
         </div>
 
+        {/* AI photo analysis */}
+        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold text-foreground">Analyse IA par photo</span>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-accent font-bold">Nouveau</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Prends une photo de la fosse — Léa estime le volume, l'urgence et le service adapté.</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && handlePhoto(e.target.files[0])}
+          />
+          <Button
+            variant="outline"
+            className="w-full border-accent/40 hover:bg-accent/10"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={analyzingPhoto}
+          >
+            {analyzingPhoto ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse...</> : <><Camera className="w-4 h-4 mr-2" /> Prendre / choisir une photo</>}
+          </Button>
+          {photoPreview && (
+            <img src={photoPreview} alt="fosse" className="w-full h-32 object-cover rounded-xl" />
+          )}
+          {photoAnalysis && (
+            <div className="text-xs space-y-2 bg-card rounded-xl p-3 border border-border">
+              <p className="text-foreground">{photoAnalysis.observations}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-2 py-1 rounded-full bg-primary/10 text-primary font-semibold">Niveau: {photoAnalysis.fill_level}</span>
+                <span className="px-2 py-1 rounded-full bg-accent/10 text-accent font-semibold">Urgence: {photoAnalysis.urgency}</span>
+              </div>
+              {photoAnalysis.safety_warnings?.length > 0 && (
+                <div className="flex gap-2 items-start text-destructive">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>{photoAnalysis.safety_warnings.join(" · ")}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Price estimate */}
         <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-hero-dark text-white noise">
           <div className="absolute inset-0 bg-gradient-mesh opacity-40" />
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-accent/20 rounded-full blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-semibold">Prix estimé</span>
+              <span className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-semibold">
+                {aiEstimate ? "Estimation IA" : "Prix estimé"}
+              </span>
               <span className="text-[10px] uppercase tracking-[0.16em] text-accent font-semibold">À partir de</span>
             </div>
             <div className="flex items-baseline gap-2">
@@ -246,7 +294,26 @@ const Order = () => {
               </span>
               <span className="text-white/50 text-sm">~ {currentPrice.max.toLocaleString()} FCFA</span>
             </div>
-            <p className="text-xs text-white/50 mt-2 font-light">Prestataires certifiés ONAS · Traçabilité incluse</p>
+            {aiEstimate?.explanation && (
+              <p className="text-xs text-white/70 mt-2">{aiEstimate.explanation}</p>
+            )}
+            {aiEstimate?.tips?.length ? (
+              <ul className="mt-2 space-y-1">
+                {aiEstimate.tips.map((t, i) => (
+                  <li key={i} className="text-xs text-white/60">• {t}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-white/50 mt-2 font-light">Prestataires certifiés ONAS · Traçabilité incluse</p>
+            )}
+            <button
+              onClick={runEstimation}
+              disabled={estimating}
+              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-accent hover:text-accent/80 transition-colors"
+            >
+              {estimating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              {estimating ? "Calcul IA..." : aiEstimate ? "Recalculer avec l'IA" : "Estimer avec l'IA"}
+            </button>
           </div>
         </div>
       </div>
