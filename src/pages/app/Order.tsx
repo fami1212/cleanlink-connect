@@ -51,12 +51,69 @@ const Order = () => {
     "Curage canalisations": { min: 20000, max: 30000 },
   };
 
-  const currentPrice = priceRange[selectedService as keyof typeof priceRange] || { min: 25000, max: 30000 };
+  const currentPrice = aiEstimate
+    ? { min: aiEstimate.price_min, max: aiEstimate.price_max }
+    : priceRange[selectedService as keyof typeof priceRange] || { min: 25000, max: 30000 };
 
   const handleLocationSelect = (lat: number, lng: number, addr: string) => {
     setLatitude(lat);
     setLongitude(lng);
     setAddress(addr.split(",").slice(0, 3).join(","));
+  };
+
+  const runEstimation = async () => {
+    setEstimating(true);
+    setAiEstimate(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-estimate", {
+        body: {
+          service_type: serviceTypeMap[selectedService],
+          address,
+          urgency: selectedService === "Urgence débordement",
+          hour: new Date().getHours(),
+        },
+      });
+      if (error) throw error;
+      setAiEstimate(data);
+      toast.success("Estimation IA prête ✨");
+    } catch (e: any) {
+      toast.error("Estimation IA indisponible");
+    } finally {
+      setEstimating(false);
+    }
+  };
+
+  const handlePhoto = async (file: File) => {
+    setAnalyzingPhoto(true);
+    setPhotoAnalysis(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setPhotoPreview(dataUrl);
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-photo-analysis", {
+          body: { image_url: dataUrl, mime_type: file.type },
+        });
+        if (error) throw error;
+        setPhotoAnalysis(data);
+        // Auto-adjust service
+        const map: Record<string, string> = {
+          fosse_septique: "Vidange fosse septique",
+          latrines: "Vidange latrines",
+          urgence: "Urgence débordement",
+          curage: "Curage canalisations",
+        };
+        if (data.recommended_service && map[data.recommended_service]) {
+          setSelectedService(map[data.recommended_service]);
+        }
+        toast.success("Photo analysée 📸");
+      } catch (e) {
+        toast.error("Analyse photo indisponible");
+      } finally {
+        setAnalyzingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
