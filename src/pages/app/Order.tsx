@@ -64,9 +64,22 @@ const Order = () => {
     setAddress(addr.split(",").slice(0, 3).join(","));
   };
 
+  const parseAiError = (e: any, source: "estimate" | "photo") => {
+    const status = e?.context?.status ?? e?.status;
+    let kind: "rate_limited" | "no_credits" | "network" | "generic" = "generic";
+    let message = "L'IA est momentanément indisponible. Vous pouvez continuer sans elle.";
+    if (status === 429) { kind = "rate_limited"; message = "Trop de requêtes IA. Réessayez dans quelques instants."; }
+    else if (status === 402) { kind = "no_credits"; message = "Crédits IA épuisés — le tarif standard s'applique."; }
+    else if (typeof e?.message === "string" && /network|fetch|Failed/i.test(e.message)) { kind = "network"; message = "Connexion instable. Vérifiez votre réseau."; }
+    setAiError({ source, kind, message });
+    setDegradedMode(true);
+    return kind;
+  };
+
   const runEstimation = async () => {
     setEstimating(true);
     setAiEstimate(null);
+    setAiError(null);
     try {
       const { data, error } = await supabase.functions.invoke("ai-estimate", {
         body: {
@@ -78,9 +91,12 @@ const Order = () => {
       });
       if (error) throw error;
       setAiEstimate(data);
+      setDegradedMode(false);
+      logAiEvent("estimate", "success", { service: serviceTypeMap[selectedService] });
       toast.success("Estimation IA prête ✨");
     } catch (e: any) {
-      toast.error("Estimation IA indisponible");
+      const kind = parseAiError(e, "estimate");
+      logAiEvent("estimate", kind === "generic" ? "error" : kind, { service: serviceTypeMap[selectedService] });
     } finally {
       setEstimating(false);
     }
@@ -89,6 +105,7 @@ const Order = () => {
   const handlePhoto = async (file: File) => {
     setAnalyzingPhoto(true);
     setPhotoAnalysis(null);
+    setAiError(null);
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
@@ -99,7 +116,6 @@ const Order = () => {
         });
         if (error) throw error;
         setPhotoAnalysis(data);
-        // Auto-adjust service
         const map: Record<string, string> = {
           fosse_septique: "Vidange fosse septique",
           latrines: "Vidange latrines",
@@ -109,9 +125,12 @@ const Order = () => {
         if (data.recommended_service && map[data.recommended_service]) {
           setSelectedService(map[data.recommended_service]);
         }
+        setDegradedMode(false);
+        logAiEvent("photo_analysis", "success", { fill: data.fill_level });
         toast.success("Photo analysée 📸");
-      } catch (e) {
-        toast.error("Analyse photo indisponible");
+      } catch (e: any) {
+        const kind = parseAiError(e, "photo");
+        logAiEvent("photo_analysis", kind === "generic" ? "error" : kind, {});
       } finally {
         setAnalyzingPhoto(false);
       }
