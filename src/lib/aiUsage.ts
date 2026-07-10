@@ -16,7 +16,7 @@ export async function logAiEvent(
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("ai_usage_events").insert({
+    await (supabase.from("ai_usage_events") as any).insert({
       user_id: user.id,
       event_type,
       status,
