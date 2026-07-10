@@ -6,7 +6,7 @@ export type AiEventType =
   | "review_summary"
   | "assistant_message";
 
-export type AiEventStatus = "success" | "error" | "degraded" | "rate_limited" | "no_credits";
+export type AiEventStatus = "success" | "error" | "degraded" | "rate_limited" | "no_credits" | "network";
 
 export async function logAiEvent(
   event_type: AiEventType,
