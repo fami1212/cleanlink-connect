@@ -28,6 +28,7 @@ import Settings from "./pages/app/Settings";
 import Favorites from "./pages/app/Favorites";
 import Conversations from "./pages/app/Conversations";
 import Chat from "./pages/app/Chat";
+import AiUsage from "./pages/app/AiUsage";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
@@ -73,6 +74,7 @@ const AppContent = () => {
         <Route path="/app/messages" element={<Conversations />} />
         <Route path="/app/conversations" element={<Conversations />} />
         <Route path="/app/chat/:conversationId" element={<Chat />} />
+        <Route path="/app/ai-usage" element={<AiUsage />} />
 
         {/* Provider routes */}
         <Route path="/app/provider" element={<ProviderDashboard />} />

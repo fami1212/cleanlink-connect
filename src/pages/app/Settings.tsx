@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, Globe, Shield, Trash2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -82,6 +82,25 @@ const Settings = () => {
             </button>
           </div>
         </div>
+
+        {/* AI Usage */}
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2 px-1">Intelligence artificielle</h3>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <button onClick={() => navigate("/app/ai-usage")} className="w-full flex items-center gap-4 p-4">
+              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-accent" />
+              </div>
+              <div className="flex-1 text-left">
+                <h4 className="font-medium text-foreground">Usage IA Léa</h4>
+                <p className="text-sm text-muted-foreground">Estimations, analyses photo, impact réservations</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+
+
 
         {/* Privacy */}
         <div>

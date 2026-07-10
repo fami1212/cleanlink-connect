@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown, Sparkles, Camera, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ChevronDown, Sparkles, Camera, Loader2, AlertTriangle, WifiOff, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { ServiceType } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
+import { logAiEvent } from "@/lib/aiUsage";
 
 const serviceTypeMap: Record<string, ServiceType> = {
   "Vidange fosse septique": "fosse_septique",
@@ -35,6 +36,8 @@ const Order = () => {
   const [photoAnalysis, setPhotoAnalysis] = useState<null | { fill_level: string; urgency: string; observations: string; recommended_service: string; safety_warnings: string[] }>(null);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<null | { source: "estimate" | "photo"; kind: "rate_limited" | "no_credits" | "network" | "generic"; message: string }>(null);
+  const [degradedMode, setDegradedMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const services = [
@@ -61,9 +64,22 @@ const Order = () => {
     setAddress(addr.split(",").slice(0, 3).join(","));
   };
 
+  const parseAiError = (e: any, source: "estimate" | "photo") => {
+    const status = e?.context?.status ?? e?.status;
+    let kind: "rate_limited" | "no_credits" | "network" | "generic" = "generic";
+    let message = "L'IA est momentanément indisponible. Vous pouvez continuer sans elle.";
+    if (status === 429) { kind = "rate_limited"; message = "Trop de requêtes IA. Réessayez dans quelques instants."; }
+    else if (status === 402) { kind = "no_credits"; message = "Crédits IA épuisés — le tarif standard s'applique."; }
+    else if (typeof e?.message === "string" && /network|fetch|Failed/i.test(e.message)) { kind = "network"; message = "Connexion instable. Vérifiez votre réseau."; }
+    setAiError({ source, kind, message });
+    setDegradedMode(true);
+    return kind;
+  };
+
   const runEstimation = async () => {
     setEstimating(true);
     setAiEstimate(null);
+    setAiError(null);
     try {
       const { data, error } = await supabase.functions.invoke("ai-estimate", {
         body: {
@@ -75,9 +91,12 @@ const Order = () => {
       });
       if (error) throw error;
       setAiEstimate(data);
+      setDegradedMode(false);
+      logAiEvent("estimate", "success", { service: serviceTypeMap[selectedService] });
       toast.success("Estimation IA prête ✨");
     } catch (e: any) {
-      toast.error("Estimation IA indisponible");
+      const kind = parseAiError(e, "estimate");
+      logAiEvent("estimate", kind === "generic" ? "error" : kind, { service: serviceTypeMap[selectedService] });
     } finally {
       setEstimating(false);
     }
@@ -86,6 +105,7 @@ const Order = () => {
   const handlePhoto = async (file: File) => {
     setAnalyzingPhoto(true);
     setPhotoAnalysis(null);
+    setAiError(null);
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
@@ -96,7 +116,6 @@ const Order = () => {
         });
         if (error) throw error;
         setPhotoAnalysis(data);
-        // Auto-adjust service
         const map: Record<string, string> = {
           fosse_septique: "Vidange fosse septique",
           latrines: "Vidange latrines",
@@ -106,9 +125,12 @@ const Order = () => {
         if (data.recommended_service && map[data.recommended_service]) {
           setSelectedService(map[data.recommended_service]);
         }
+        setDegradedMode(false);
+        logAiEvent("photo_analysis", "success", { fill: data.fill_level });
         toast.success("Photo analysée 📸");
-      } catch (e) {
-        toast.error("Analyse photo indisponible");
+      } catch (e: any) {
+        const kind = parseAiError(e, "photo");
+        logAiEvent("photo_analysis", kind === "generic" ? "error" : kind, {});
       } finally {
         setAnalyzingPhoto(false);
       }
@@ -230,6 +252,46 @@ const Order = () => {
             </div>
           )}
         </div>
+
+        {/* Degraded mode banner */}
+        {aiError && (
+          <div className={`rounded-2xl border p-4 space-y-2 animate-fade-in ${
+            aiError.kind === "no_credits"
+              ? "border-destructive/40 bg-destructive/5"
+              : "border-amber-500/40 bg-amber-500/5"
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                aiError.kind === "network" ? "bg-amber-500/20 text-amber-600" : "bg-amber-500/20 text-amber-700"
+              }`}>
+                {aiError.kind === "network" ? <WifiOff className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Mode dégradé activé
+                  </p>
+                  <button onClick={() => setAiError(null)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{aiError.message}</p>
+                <p className="text-[11px] text-foreground/80 mt-2">
+                  ✅ Vous pouvez toujours <strong>commander et payer</strong> au tarif standard.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={aiError.source === "estimate" ? runEstimation : () => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Réessayer l'IA
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {/* AI photo analysis */}
         <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 space-y-3">

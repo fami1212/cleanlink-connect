@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { logAiEvent } from "@/lib/aiUsage";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -129,6 +130,8 @@ const AiAssistant = () => {
 
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: "Erreur" }));
+        const status = res.status === 429 ? "rate_limited" : res.status === 402 ? "no_credits" : "error";
+        logAiEvent("assistant_message", status, { http: res.status });
         toast.error(err.error || "Erreur de l'assistant");
         setLoading(false);
         return;
@@ -163,7 +166,9 @@ const AiAssistant = () => {
           } catch {}
         }
       }
+      logAiEvent("assistant_message", "success", {});
     } catch {
+      logAiEvent("assistant_message", "network", {});
       toast.error("Connexion impossible à l'assistant");
     } finally {
       setLoading(false);
