@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, Globe, Shield, Trash2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
