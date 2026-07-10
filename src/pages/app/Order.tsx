@@ -253,6 +253,46 @@ const Order = () => {
           )}
         </div>
 
+        {/* Degraded mode banner */}
+        {aiError && (
+          <div className={`rounded-2xl border p-4 space-y-2 animate-fade-in ${
+            aiError.kind === "no_credits"
+              ? "border-destructive/40 bg-destructive/5"
+              : "border-amber-500/40 bg-amber-500/5"
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                aiError.kind === "network" ? "bg-amber-500/20 text-amber-600" : "bg-amber-500/20 text-amber-700"
+              }`}>
+                {aiError.kind === "network" ? <WifiOff className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Mode dégradé activé
+                  </p>
+                  <button onClick={() => setAiError(null)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{aiError.message}</p>
+                <p className="text-[11px] text-foreground/80 mt-2">
+                  ✅ Vous pouvez toujours <strong>commander et payer</strong> au tarif standard.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={aiError.source === "estimate" ? runEstimation : () => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Réessayer l'IA
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+
         {/* AI photo analysis */}
         <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 space-y-3">
           <div className="flex items-center justify-between">
