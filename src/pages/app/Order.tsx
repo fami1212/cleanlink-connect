@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown, Sparkles, Camera, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ChevronDown, Sparkles, Camera, Loader2, AlertTriangle, WifiOff, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { ServiceType } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
+import { logAiEvent } from "@/lib/aiUsage";
 
 const serviceTypeMap: Record<string, ServiceType> = {
   "Vidange fosse septique": "fosse_septique",
@@ -35,6 +36,8 @@ const Order = () => {
   const [photoAnalysis, setPhotoAnalysis] = useState<null | { fill_level: string; urgency: string; observations: string; recommended_service: string; safety_warnings: string[] }>(null);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<null | { source: "estimate" | "photo"; kind: "rate_limited" | "no_credits" | "network" | "generic"; message: string }>(null);
+  const [degradedMode, setDegradedMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const services = [
