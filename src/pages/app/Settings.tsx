@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Sparkles, ShieldCheck, Building2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { hasRole } = useUserRole();
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("fr");
 
