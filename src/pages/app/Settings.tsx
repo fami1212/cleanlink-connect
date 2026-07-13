@@ -102,6 +102,40 @@ const Settings = () => {
           </div>
         </div>
 
+        {/* Admin & Authority (conditional) */}
+        {(hasRole("admin") || hasRole("authority")) && (
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2 px-1">Administration</h3>
+            <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+              {hasRole("admin") && (
+                <button onClick={() => navigate("/app/admin")} className="w-full flex items-center gap-4 p-4">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className="font-medium text-foreground">Dashboard admin</h4>
+                    <p className="text-sm text-muted-foreground">KPI, validation prestataires, modération</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+              )}
+              {hasRole("authority") && (
+                <button onClick={() => navigate("/app/authority")} className="w-full flex items-center gap-4 p-4">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Building2 className="w-5 h-5 text-emerald-700" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className="font-medium text-foreground">Traçabilité ONAS</h4>
+                    <p className="text-sm text-muted-foreground">Suivi réglementaire des missions</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+
 
 
         {/* Privacy */}
