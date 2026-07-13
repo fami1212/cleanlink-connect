@@ -1,5 +1,5 @@
 // Manual types until Supabase types are regenerated
-export type UserRole = "client" | "provider" | "authority";
+export type UserRole = "client" | "provider" | "authority" | "admin";
 export type OrderStatus = "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
 export type ServiceType = "fosse_septique" | "latrines" | "urgence" | "curage";
 export type PaymentMethod = "wave" | "orange_money" | "free_money" | "cash";
