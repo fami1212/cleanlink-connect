@@ -413,7 +413,7 @@ export type Database = {
         | "cancelled"
       payment_method: "wave" | "orange_money" | "free_money" | "cash"
       service_type: "fosse_septique" | "latrines" | "urgence" | "curage"
-      user_role: "client" | "provider" | "authority"
+      user_role: "client" | "provider" | "authority" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -550,7 +550,7 @@ export const Constants = {
       ],
       payment_method: ["wave", "orange_money", "free_money", "cash"],
       service_type: ["fosse_septique", "latrines", "urgence", "curage"],
-      user_role: ["client", "provider", "authority"],
+      user_role: ["client", "provider", "authority", "admin"],
     },
   },
 } as const
