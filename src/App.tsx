@@ -29,6 +29,11 @@ import Favorites from "./pages/app/Favorites";
 import Conversations from "./pages/app/Conversations";
 import Chat from "./pages/app/Chat";
 import AiUsage from "./pages/app/AiUsage";
+import AdminDashboard from "./pages/app/admin/AdminDashboard";
+import AdminProviders from "./pages/app/admin/AdminProviders";
+import AdminReviews from "./pages/app/admin/AdminReviews";
+import AuthorityDashboard from "./pages/app/authority/AuthorityDashboard";
+import RoleGuard from "./components/app/RoleGuard";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
