@@ -29,6 +29,11 @@ import Favorites from "./pages/app/Favorites";
 import Conversations from "./pages/app/Conversations";
 import Chat from "./pages/app/Chat";
 import AiUsage from "./pages/app/AiUsage";
+import AdminDashboard from "./pages/app/admin/AdminDashboard";
+import AdminProviders from "./pages/app/admin/AdminProviders";
+import AdminReviews from "./pages/app/admin/AdminReviews";
+import AuthorityDashboard from "./pages/app/authority/AuthorityDashboard";
+import RoleGuard from "./components/app/RoleGuard";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
@@ -75,6 +80,14 @@ const AppContent = () => {
         <Route path="/app/conversations" element={<Conversations />} />
         <Route path="/app/chat/:conversationId" element={<Chat />} />
         <Route path="/app/ai-usage" element={<AiUsage />} />
+
+        {/* Admin routes */}
+        <Route path="/app/admin" element={<RoleGuard allow={["admin"]}><AdminDashboard /></RoleGuard>} />
+        <Route path="/app/admin/providers" element={<RoleGuard allow={["admin"]}><AdminProviders /></RoleGuard>} />
+        <Route path="/app/admin/reviews" element={<RoleGuard allow={["admin"]}><AdminReviews /></RoleGuard>} />
+
+        {/* Authority (ONAS) route */}
+        <Route path="/app/authority" element={<RoleGuard allow={["authority", "admin"]}><AuthorityDashboard /></RoleGuard>} />
 
         {/* Provider routes */}
         <Route path="/app/provider" element={<ProviderDashboard />} />
