@@ -220,6 +220,11 @@ export type Database = {
           price_min: number | null
           provider_id: string | null
           rating: number | null
+          review_comment: string | null
+          review_flag_reason: string | null
+          review_hidden: boolean
+          review_moderated_at: string | null
+          review_moderated_by: string | null
           scheduled_at: string | null
           service_type: Database["public"]["Enums"]["service_type"]
           status: Database["public"]["Enums"]["order_status"]
@@ -241,6 +246,11 @@ export type Database = {
           price_min?: number | null
           provider_id?: string | null
           rating?: number | null
+          review_comment?: string | null
+          review_flag_reason?: string | null
+          review_hidden?: boolean
+          review_moderated_at?: string | null
+          review_moderated_by?: string | null
           scheduled_at?: string | null
           service_type: Database["public"]["Enums"]["service_type"]
           status?: Database["public"]["Enums"]["order_status"]
@@ -262,6 +272,11 @@ export type Database = {
           price_min?: number | null
           provider_id?: string | null
           rating?: number | null
+          review_comment?: string | null
+          review_flag_reason?: string | null
+          review_hidden?: boolean
+          review_moderated_at?: string | null
+          review_moderated_by?: string | null
           scheduled_at?: string | null
           service_type?: Database["public"]["Enums"]["service_type"]
           status?: Database["public"]["Enums"]["order_status"]
@@ -331,6 +346,10 @@ export type Database = {
           user_id: string
           vehicle_registration_url: string | null
           vehicle_type: string | null
+          verification_notes: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
           work_zone_radius: number | null
         }
         Insert: {
@@ -350,6 +369,10 @@ export type Database = {
           user_id: string
           vehicle_registration_url?: string | null
           vehicle_type?: string | null
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           work_zone_radius?: number | null
         }
         Update: {
@@ -369,6 +392,10 @@ export type Database = {
           user_id?: string
           vehicle_registration_url?: string | null
           vehicle_type?: string | null
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           work_zone_radius?: number | null
         }
         Relationships: []
