@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route, Gauge, Navigation2 } from "lucide-react";
+import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route, Gauge, Navigation2, ShieldAlert, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import BottomNav from "@/components/app/BottomNav";
@@ -9,6 +9,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrackingPreferences } from "@/hooks/useTrackingPreferences";
 import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
+import CancelOrderDialog from "@/components/app/CancelOrderDialog";
+import DisputeDialog from "@/components/app/DisputeDialog";
+import { getOrCreateInvoice, downloadInvoicePdf } from "@/lib/invoice";
+
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
   const R = 6371;
@@ -58,7 +62,12 @@ const Tracking = () => {
   const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
   const [history, setHistory] = useState<{ lat: number; lng: number; at: Date; speed: number | null }[]>([]);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [showCancel, setShowCancel] = useState(false);
+  const [showDispute, setShowDispute] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean; delayed?: boolean }>({});
+
   const initialEtaRef = useRef<number | null>(null);
   const lastEtaBucketRef = useRef<number | null>(null);
   const lastStatusRef = useRef<string | null>(null);
@@ -380,21 +389,70 @@ const Tracking = () => {
     navigate("/app");
   };
 
-  const handleCancelOrder = async () => {
+  const handleCancelOrder = async (reason: string, details: string) => {
     if (!orderId) return;
+    setCancelling(true);
+    const fullReason = details ? `${reason} — ${details}` : reason;
+    const { error } = await (supabase as any)
+      .from("orders")
+      .update({
+        status: "cancelled",
+        cancellation_reason: fullReason,
+        cancelled_by: order?.client_id,
+        cancelled_at: new Date().toISOString(),
+        refund_status: order?.payment_method && order.payment_method !== "cash" ? "pending" : "none",
+      })
+      .eq("id", orderId);
 
-    const { error } = await updateOrder(orderId, {
-      status: "cancelled",
-    });
-
+    setCancelling(false);
     if (error) {
       toast.error("Erreur lors de l'annulation");
       return;
     }
 
+    setShowCancel(false);
     toast.success("Commande annulée");
     navigate("/app");
   };
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    setInvoiceLoading(true);
+    const inv = await getOrCreateInvoice({
+      id: order.id,
+      client_id: order.client_id,
+      provider_id: order.provider_id,
+      service_type: order.service_type,
+      address: order.address,
+      final_price: order.final_price,
+      price_min: order.price_min,
+      payment_method: order.payment_method,
+      completed_at: order.completed_at,
+      created_at: order.created_at,
+    });
+    setInvoiceLoading(false);
+    if (!inv) {
+      toast.error("Impossible de générer la facture");
+      return;
+    }
+    downloadInvoicePdf(
+      {
+        id: order.id,
+        client_id: order.client_id,
+        provider_id: order.provider_id,
+        service_type: order.service_type,
+        address: order.address,
+        final_price: order.final_price,
+        price_min: order.price_min,
+        payment_method: order.payment_method,
+        completed_at: order.completed_at,
+        created_at: order.created_at,
+      },
+      inv
+    );
+    toast.success(`Facture ${inv.invoice_number} téléchargée`);
+  };
+
 
   // Show loading only while fetching orders
   if (ordersLoading) {
@@ -599,10 +657,11 @@ const Tracking = () => {
             <Button
               variant="outline"
               className="border-destructive text-destructive"
-              onClick={handleCancelOrder}
+              onClick={() => setShowCancel(true)}
             >
               Annuler la commande
             </Button>
+
           </div>
         </div>
       )}
@@ -776,11 +835,57 @@ const Tracking = () => {
               <p className="text-sm text-muted-foreground">Merci pour votre évaluation!</p>
             </div>
           )}
+
+          {/* Post-service actions: invoice + dispute + cancel (if accepted) */}
+          {status === "completed" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={handleDownloadInvoice} disabled={invoiceLoading}>
+                <FileText className="w-4 h-4 mr-2" />
+                {invoiceLoading ? "..." : "Facture PDF"}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-amber-500/50 text-amber-700 hover:bg-amber-500/10"
+                onClick={() => setShowDispute(true)}
+              >
+                <ShieldAlert className="w-4 h-4 mr-2" />
+                Signaler
+              </Button>
+            </div>
+          )}
+
+          {(status === "accepted" || status === "in_progress") && (
+            <Button
+              variant="outline"
+              className="w-full border-destructive text-destructive"
+              onClick={() => setShowCancel(true)}
+            >
+              Annuler la commande
+            </Button>
+          )}
         </div>
+      )}
+
+      <CancelOrderDialog
+        open={showCancel}
+        onClose={() => setShowCancel(false)}
+        onConfirm={handleCancelOrder}
+        loading={cancelling}
+      />
+      {order && (
+        <DisputeDialog
+          open={showDispute}
+          onClose={() => setShowDispute(false)}
+          orderId={order.id}
+          clientId={order.client_id}
+          providerId={order.provider_id}
+          paidAmount={order.final_price || order.price_min}
+        />
       )}
 
       <BottomNav />
     </div>
+
   );
 };
 

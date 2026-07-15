@@ -1,8 +1,14 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, MapPin, Clock, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, FileText, MapPin, Clock, Star, RefreshCw, ShieldAlert, Download } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import DisputeDialog from "@/components/app/DisputeDialog";
+import { getOrCreateInvoice, downloadInvoicePdf } from "@/lib/invoice";
+import { toast } from "sonner";
+import { Order } from "@/types/database";
+
 
 const serviceTypeLabels: Record<string, string> = {
   fosse_septique: "Vidange fosse septique",
@@ -22,6 +28,47 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 const OrderHistory = () => {
   const navigate = useNavigate();
   const { orders, loading } = useOrders();
+  const [disputeOrder, setDisputeOrder] = useState<Order | null>(null);
+  const [busyInvoice, setBusyInvoice] = useState<string | null>(null);
+
+  const handleInvoice = async (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation();
+    setBusyInvoice(order.id);
+    const inv = await getOrCreateInvoice({
+      id: order.id,
+      client_id: order.client_id,
+      provider_id: order.provider_id,
+      service_type: order.service_type,
+      address: order.address,
+      final_price: order.final_price,
+      price_min: order.price_min,
+      payment_method: order.payment_method,
+      completed_at: order.completed_at,
+      created_at: order.created_at,
+    });
+    setBusyInvoice(null);
+    if (!inv) {
+      toast.error("Impossible de générer la facture");
+      return;
+    }
+    downloadInvoicePdf(
+      {
+        id: order.id,
+        client_id: order.client_id,
+        provider_id: order.provider_id,
+        service_type: order.service_type,
+        address: order.address,
+        final_price: order.final_price,
+        price_min: order.price_min,
+        payment_method: order.payment_method,
+        completed_at: order.completed_at,
+        created_at: order.created_at,
+      },
+      inv
+    );
+    toast.success(`Facture ${inv.invoice_number} téléchargée`);
+  };
+
 
   if (loading) {
     return (
@@ -114,13 +161,45 @@ const OrderHistory = () => {
                     {(order.final_price || order.price_min || 0).toLocaleString()} FCFA
                   </span>
                 </div>
+
+                {order.status === "completed" && (
+                  <div className="flex gap-2 pt-3 mt-1 border-t border-border">
+                    <button
+                      onClick={(e) => handleInvoice(e, order)}
+                      disabled={busyInvoice === order.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {busyInvoice === order.id ? "..." : "Facture PDF"}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDisputeOrder(order); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/10 text-amber-700 text-xs font-medium hover:bg-amber-500/20 transition-colors"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      Signaler
+                    </button>
+                  </div>
+                )}
               </button>
             );
           })
         )}
       </div>
+
+      {disputeOrder && (
+        <DisputeDialog
+          open={!!disputeOrder}
+          onClose={() => setDisputeOrder(null)}
+          orderId={disputeOrder.id}
+          clientId={disputeOrder.client_id}
+          providerId={disputeOrder.provider_id}
+          paidAmount={disputeOrder.final_price || disputeOrder.price_min}
+        />
+      )}
     </div>
   );
 };
+
 
 export default OrderHistory;
