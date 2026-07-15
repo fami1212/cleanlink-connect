@@ -1,8 +1,14 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, MapPin, Clock, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, FileText, MapPin, Clock, Star, RefreshCw, ShieldAlert, Download } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import DisputeDialog from "@/components/app/DisputeDialog";
+import { getOrCreateInvoice, downloadInvoicePdf } from "@/lib/invoice";
+import { toast } from "sonner";
+import { Order } from "@/types/database";
+
 
 const serviceTypeLabels: Record<string, string> = {
   fosse_septique: "Vidange fosse septique",
