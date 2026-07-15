@@ -657,10 +657,11 @@ const Tracking = () => {
             <Button
               variant="outline"
               className="border-destructive text-destructive"
-              onClick={handleCancelOrder}
+              onClick={() => setShowCancel(true)}
             >
               Annuler la commande
             </Button>
+
           </div>
         </div>
       )}
