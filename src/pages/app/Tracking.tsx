@@ -835,11 +835,57 @@ const Tracking = () => {
               <p className="text-sm text-muted-foreground">Merci pour votre évaluation!</p>
             </div>
           )}
+
+          {/* Post-service actions: invoice + dispute + cancel (if accepted) */}
+          {status === "completed" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={handleDownloadInvoice} disabled={invoiceLoading}>
+                <FileText className="w-4 h-4 mr-2" />
+                {invoiceLoading ? "..." : "Facture PDF"}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-amber-500/50 text-amber-700 hover:bg-amber-500/10"
+                onClick={() => setShowDispute(true)}
+              >
+                <ShieldAlert className="w-4 h-4 mr-2" />
+                Signaler
+              </Button>
+            </div>
+          )}
+
+          {(status === "accepted" || status === "in_progress") && (
+            <Button
+              variant="outline"
+              className="w-full border-destructive text-destructive"
+              onClick={() => setShowCancel(true)}
+            >
+              Annuler la commande
+            </Button>
+          )}
         </div>
+      )}
+
+      <CancelOrderDialog
+        open={showCancel}
+        onClose={() => setShowCancel(false)}
+        onConfirm={handleCancelOrder}
+        loading={cancelling}
+      />
+      {order && (
+        <DisputeDialog
+          open={showDispute}
+          onClose={() => setShowDispute(false)}
+          orderId={order.id}
+          clientId={order.client_id}
+          providerId={order.provider_id}
+          paidAmount={order.final_price || order.price_min}
+        />
       )}
 
       <BottomNav />
     </div>
+
   );
 };
 
