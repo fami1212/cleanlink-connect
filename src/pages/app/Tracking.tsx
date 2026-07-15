@@ -62,7 +62,12 @@ const Tracking = () => {
   const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
   const [history, setHistory] = useState<{ lat: number; lng: number; at: Date; speed: number | null }[]>([]);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [showCancel, setShowCancel] = useState(false);
+  const [showDispute, setShowDispute] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean; delayed?: boolean }>({});
+
   const initialEtaRef = useRef<number | null>(null);
   const lastEtaBucketRef = useRef<number | null>(null);
   const lastStatusRef = useRef<string | null>(null);
