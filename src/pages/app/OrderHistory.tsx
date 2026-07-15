@@ -161,13 +161,45 @@ const OrderHistory = () => {
                     {(order.final_price || order.price_min || 0).toLocaleString()} FCFA
                   </span>
                 </div>
+
+                {order.status === "completed" && (
+                  <div className="flex gap-2 pt-3 mt-1 border-t border-border">
+                    <button
+                      onClick={(e) => handleInvoice(e, order)}
+                      disabled={busyInvoice === order.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {busyInvoice === order.id ? "..." : "Facture PDF"}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDisputeOrder(order); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/10 text-amber-700 text-xs font-medium hover:bg-amber-500/20 transition-colors"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      Signaler
+                    </button>
+                  </div>
+                )}
               </button>
             );
           })
         )}
       </div>
+
+      {disputeOrder && (
+        <DisputeDialog
+          open={!!disputeOrder}
+          onClose={() => setDisputeOrder(null)}
+          orderId={disputeOrder.id}
+          clientId={disputeOrder.client_id}
+          providerId={disputeOrder.provider_id}
+          paidAmount={disputeOrder.final_price || disputeOrder.price_min}
+        />
+      )}
     </div>
   );
 };
+
 
 export default OrderHistory;
