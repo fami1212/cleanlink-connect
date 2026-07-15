@@ -76,6 +76,62 @@ export type Database = {
           },
         ]
       }
+      disputes: {
+        Row: {
+          category: string
+          client_id: string
+          created_at: string
+          description: string
+          disputed_amount: number | null
+          id: string
+          order_id: string
+          provider_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          client_id: string
+          created_at?: string
+          description: string
+          disputed_amount?: number | null
+          id?: string
+          order_id: string
+          provider_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          client_id?: string
+          created_at?: string
+          description?: string
+          disputed_amount?: number | null
+          id?: string
+          order_id?: string
+          provider_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -101,6 +157,62 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_ht: number
+          amount_ttc: number
+          amount_tva: number
+          client_id: string
+          created_at: string
+          id: string
+          invoice_number: string
+          issued_at: string
+          order_id: string
+          pdf_url: string | null
+          provider_id: string | null
+          tva_rate: number
+          updated_at: string
+        }
+        Insert: {
+          amount_ht: number
+          amount_ttc: number
+          amount_tva: number
+          client_id: string
+          created_at?: string
+          id?: string
+          invoice_number: string
+          issued_at?: string
+          order_id: string
+          pdf_url?: string | null
+          provider_id?: string | null
+          tva_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_ht?: number
+          amount_ttc?: number
+          amount_tva?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          order_id?: string
+          pdf_url?: string | null
+          provider_id?: string | null
+          tva_rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -207,6 +319,9 @@ export type Database = {
         Row: {
           accepted_at: string | null
           address: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_id: string
           completed_at: string | null
           created_at: string
@@ -220,6 +335,8 @@ export type Database = {
           price_min: number | null
           provider_id: string | null
           rating: number | null
+          refund_amount: number | null
+          refund_status: string | null
           review_comment: string | null
           review_flag_reason: string | null
           review_hidden: boolean
@@ -233,6 +350,9 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           address: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id: string
           completed_at?: string | null
           created_at?: string
@@ -246,6 +366,8 @@ export type Database = {
           price_min?: number | null
           provider_id?: string | null
           rating?: number | null
+          refund_amount?: number | null
+          refund_status?: string | null
           review_comment?: string | null
           review_flag_reason?: string | null
           review_hidden?: boolean
@@ -259,6 +381,9 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           address?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id?: string
           completed_at?: string | null
           created_at?: string
@@ -272,6 +397,8 @@ export type Database = {
           price_min?: number | null
           provider_id?: string | null
           rating?: number | null
+          refund_amount?: number | null
+          refund_status?: string | null
           review_comment?: string | null
           review_flag_reason?: string | null
           review_hidden?: boolean
@@ -430,6 +557,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_invoice_number: { Args: never; Returns: string }
     }
     Enums: {
       order_status:
