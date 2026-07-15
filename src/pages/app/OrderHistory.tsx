@@ -28,6 +28,47 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 const OrderHistory = () => {
   const navigate = useNavigate();
   const { orders, loading } = useOrders();
+  const [disputeOrder, setDisputeOrder] = useState<Order | null>(null);
+  const [busyInvoice, setBusyInvoice] = useState<string | null>(null);
+
+  const handleInvoice = async (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation();
+    setBusyInvoice(order.id);
+    const inv = await getOrCreateInvoice({
+      id: order.id,
+      client_id: order.client_id,
+      provider_id: order.provider_id,
+      service_type: order.service_type,
+      address: order.address,
+      final_price: order.final_price,
+      price_min: order.price_min,
+      payment_method: order.payment_method,
+      completed_at: order.completed_at,
+      created_at: order.created_at,
+    });
+    setBusyInvoice(null);
+    if (!inv) {
+      toast.error("Impossible de générer la facture");
+      return;
+    }
+    downloadInvoicePdf(
+      {
+        id: order.id,
+        client_id: order.client_id,
+        provider_id: order.provider_id,
+        service_type: order.service_type,
+        address: order.address,
+        final_price: order.final_price,
+        price_min: order.price_min,
+        payment_method: order.payment_method,
+        completed_at: order.completed_at,
+        created_at: order.created_at,
+      },
+      inv
+    );
+    toast.success(`Facture ${inv.invoice_number} téléchargée`);
+  };
+
 
   if (loading) {
     return (
