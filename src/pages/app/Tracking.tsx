@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route, Gauge, Navigation2 } from "lucide-react";
+import { ArrowLeft, Phone, MessageSquare, Star, MapPin, Truck, Clock, RefreshCw, Home, Route, Gauge, Navigation2, ShieldAlert, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Map from "@/components/app/Map";
 import BottomNav from "@/components/app/BottomNav";
@@ -9,6 +9,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrackingPreferences } from "@/hooks/useTrackingPreferences";
 import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
+import CancelOrderDialog from "@/components/app/CancelOrderDialog";
+import DisputeDialog from "@/components/app/DisputeDialog";
+import { getOrCreateInvoice, downloadInvoicePdf } from "@/lib/invoice";
+
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
   const R = 6371;
