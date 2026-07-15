@@ -389,21 +389,70 @@ const Tracking = () => {
     navigate("/app");
   };
 
-  const handleCancelOrder = async () => {
+  const handleCancelOrder = async (reason: string, details: string) => {
     if (!orderId) return;
+    setCancelling(true);
+    const fullReason = details ? `${reason} — ${details}` : reason;
+    const { error } = await (supabase as any)
+      .from("orders")
+      .update({
+        status: "cancelled",
+        cancellation_reason: fullReason,
+        cancelled_by: order?.client_id,
+        cancelled_at: new Date().toISOString(),
+        refund_status: order?.payment_method && order.payment_method !== "cash" ? "pending" : "none",
+      })
+      .eq("id", orderId);
 
-    const { error } = await updateOrder(orderId, {
-      status: "cancelled",
-    });
-
+    setCancelling(false);
     if (error) {
       toast.error("Erreur lors de l'annulation");
       return;
     }
 
+    setShowCancel(false);
     toast.success("Commande annulée");
     navigate("/app");
   };
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    setInvoiceLoading(true);
+    const inv = await getOrCreateInvoice({
+      id: order.id,
+      client_id: order.client_id,
+      provider_id: order.provider_id,
+      service_type: order.service_type,
+      address: order.address,
+      final_price: order.final_price,
+      price_min: order.price_min,
+      payment_method: order.payment_method,
+      completed_at: order.completed_at,
+      created_at: order.created_at,
+    });
+    setInvoiceLoading(false);
+    if (!inv) {
+      toast.error("Impossible de générer la facture");
+      return;
+    }
+    downloadInvoicePdf(
+      {
+        id: order.id,
+        client_id: order.client_id,
+        provider_id: order.provider_id,
+        service_type: order.service_type,
+        address: order.address,
+        final_price: order.final_price,
+        price_min: order.price_min,
+        payment_method: order.payment_method,
+        completed_at: order.completed_at,
+        created_at: order.created_at,
+      },
+      inv
+    );
+    toast.success(`Facture ${inv.invoice_number} téléchargée`);
+  };
+
 
   // Show loading only while fetching orders
   if (ordersLoading) {
