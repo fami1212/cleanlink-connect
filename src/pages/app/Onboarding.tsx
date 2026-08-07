@@ -65,7 +65,7 @@ const Onboarding = () => {
           onClick={handleSkip}
           className="text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          Passer
+          {t("onb.skip")}
         </button>
       </div>
 
