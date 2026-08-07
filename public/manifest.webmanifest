@@ -1,0 +1,32 @@
+{
+  "name": "Link'eco — Vidange & assainissement",
+  "short_name": "Link'eco",
+  "description": "Commandez votre vidange en 3 clics au Sénégal. Prestataires certifiés, suivi GPS temps réel.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0a4a36",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
