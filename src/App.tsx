@@ -4,6 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
+import { LanguageProvider } from "@/lib/i18n";
+import Referral from "./pages/app/Referral";
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AiAssistant from "./components/app/AiAssistant";
@@ -80,6 +84,8 @@ const AppContent = () => {
         <Route path="/app/conversations" element={<Conversations />} />
         <Route path="/app/chat/:conversationId" element={<Chat />} />
         <Route path="/app/ai-usage" element={<AiUsage />} />
+        <Route path="/app/parrainage" element={<Referral />} />
+
 
         {/* Admin routes */}
         <Route path="/app/admin" element={<RoleGuard allow={["admin"]}><AdminDashboard /></RoleGuard>} />
@@ -108,17 +114,22 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
+
 
 export default App;
 
