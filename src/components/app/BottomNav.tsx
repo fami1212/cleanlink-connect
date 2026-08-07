@@ -3,18 +3,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useI18n } from "@/lib/i18n";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount } = useUnreadMessages();
+  const { t } = useI18n();
 
   const navItems = [
-    { icon: Home, label: "Accueil", path: "/app", badge: 0 },
-    { icon: MapPin, label: "Suivi", path: "/app/tracking", badge: 0 },
-    { icon: MessageCircle, label: "Messages", path: "/app/messages", badge: unreadCount },
-    { icon: User, label: "Profil", path: "/app/profile", badge: 0 },
+    { icon: Home, label: t("nav.home"), path: "/app", badge: 0 },
+    { icon: MapPin, label: t("nav.tracking"), path: "/app/tracking", badge: 0 },
+    { icon: MessageCircle, label: t("nav.messages"), path: "/app/messages", badge: unreadCount },
+    { icon: User, label: t("nav.profile"), path: "/app/profile", badge: 0 },
   ];
+
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom pointer-events-none">

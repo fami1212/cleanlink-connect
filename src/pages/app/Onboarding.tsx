@@ -6,30 +6,21 @@ import { RefreshCw } from "lucide-react";
 import logo from "@/assets/linkeco-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
-
-const slides = [
-  {
-    title: "Besoin urgent de vidange ?",
-    description: "Trouver un prestataire fiable n'est pas toujours simple.",
-    image: "🏠",
-  },
-  {
-    title: "Link'eco connecte",
-    description: "Citoyens et professionnels pour des services rapides et transparents.",
-    image: "📱",
-  },
-  {
-    title: "Un service clair",
-    description: "Un environnement sain. Commandez en quelques clics.",
-    image: "✨",
-  },
-];
+import { useI18n } from "@/lib/i18n";
 
 const Onboarding = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { roles, loading: roleLoading } = useUserRole();
+  const { t } = useI18n();
+
+  const slides = [
+    { title: t("onb.1.title"), description: t("onb.1.desc"), image: "🏠" },
+    { title: t("onb.2.title"), description: t("onb.2.desc"), image: "📱" },
+    { title: t("onb.3.title"), description: t("onb.3.desc"), image: "✨" },
+  ];
+
 
   // Auto-redirect if user is already logged in
   useEffect(() => {
