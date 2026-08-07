@@ -126,7 +126,7 @@ const Onboarding = () => {
           className="w-full"
           onClick={handleNext}
         >
-          {currentSlide < slides.length - 1 ? "Suivant" : "Commencer"}
+          {currentSlide < slides.length - 1 ? t("onb.next") : t("onb.start")}
         </Button>
       </div>
     </div>
