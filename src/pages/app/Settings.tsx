@@ -40,7 +40,7 @@ const Settings = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <h1 className="font-display text-lg font-semibold text-foreground">
-            Paramètres
+            {t("set.title")}
           </h1>
         </div>
       </div>
@@ -50,7 +50,7 @@ const Settings = () => {
         {/* Appearance */}
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2 px-1">
-            Apparence
+            {t("set.appearance")}
           </h3>
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="flex items-center gap-4 p-4">
@@ -62,10 +62,13 @@ const Settings = () => {
                 )}
               </div>
               <div className="flex-1">
-                <h4 className="font-medium text-foreground">Mode sombre</h4>
-                <p className="text-sm text-muted-foreground">Thème foncé pour l'application</p>
+                <h4 className="font-medium text-foreground">{t("set.dark")}</h4>
+                <p className="text-sm text-muted-foreground">{t("set.darkDesc")}</p>
               </div>
-              <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+              <Switch
+                checked={darkMode}
+                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              />
             </div>
           </div>
         </div>
@@ -73,21 +76,62 @@ const Settings = () => {
         {/* Language */}
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2 px-1">
-            Langue
+            {t("set.language")}
           </h3>
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <button className="w-full flex items-center gap-4 p-4">
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-4 mb-3">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
                 <Globe className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 text-left">
-                <h4 className="font-medium text-foreground">Langue de l'application</h4>
-                <p className="text-sm text-muted-foreground">Français</p>
+                <h4 className="font-medium text-foreground">{t("set.languageDesc")}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {LANGUAGES.find((l) => l.value === lang)?.native}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.value}
+                  onClick={() => setLang(l.value)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                    lang === l.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  )}
+                >
+                  <span>{l.flag}</span>
+                  {l.native}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Referral */}
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2 px-1">
+            {t("set.referral")}
+          </h3>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <button
+              onClick={() => navigate("/app/parrainage")}
+              className="w-full flex items-center gap-4 p-4"
+            >
+              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
+                <Gift className="w-5 h-5 text-accent" />
+              </div>
+              <div className="flex-1 text-left">
+                <h4 className="font-medium text-foreground">{t("set.referral")}</h4>
+                <p className="text-sm text-muted-foreground">{t("set.referralDesc")}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
         </div>
+
 
         {/* AI Usage */}
         <div>
