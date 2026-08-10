@@ -12,7 +12,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/linkeco-logo.png";
 
 const emailSchema = z.string().email("Email invalide");
-const passwordSchema = z.string().min(6, "Minimum 6 caractères");
+const passwordSchema = z
+  .string()
+  .min(8, "Minimum 8 caractères")
+  .regex(/[A-Za-z]/, "Le mot de passe doit contenir une lettre")
+  .regex(/[0-9]/, "Le mot de passe doit contenir un chiffre");
 
 const Auth = () => {
   const navigate = useNavigate();
