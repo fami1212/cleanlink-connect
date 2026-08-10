@@ -191,9 +191,15 @@ const Auth = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••"
+                    placeholder="••••••••"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
                     className="bg-white/5 border-white/10 text-background placeholder:text-background/30 h-12 rounded-xl focus-visible:border-accent focus-visible:ring-accent/20"
                   />
+                  {!isLogin && (
+                    <p className="text-[11px] text-background/50">
+                      8 caractères minimum, avec au moins une lettre et un chiffre. Évitez les mots de passe courants.
+                    </p>
+                  )}
                 </div>
 
                 <Button
