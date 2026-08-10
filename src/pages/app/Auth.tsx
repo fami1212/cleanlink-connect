@@ -73,7 +73,20 @@ const Auth = () => {
       }
       const { error } = await signUp(email, password, fullName);
       if (error) {
-        toast.error(error.message.includes("already registered") ? "Cet email est déjà utilisé" : "Erreur d'inscription");
+        const msg = error.message.toLowerCase();
+        let label = "Erreur d'inscription. Réessayez.";
+        if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("user already")) {
+          label = "Cet email est déjà utilisé";
+        } else if (msg.includes("weak") || msg.includes("pwned")) {
+          label = "Mot de passe trop courant. Choisissez-en un plus complexe (lettres, chiffres, symboles).";
+        } else if (msg.includes("password")) {
+          label = "Mot de passe invalide : minimum 8 caractères.";
+        } else if (msg.includes("email")) {
+          label = "Adresse email invalide ou non autorisée.";
+        } else if (msg.includes("rate") || msg.includes("limit")) {
+          label = "Trop de tentatives. Patientez quelques minutes.";
+        }
+        toast.error(label);
         setIsSubmitting(false);
       } else {
         toast.success("Compte créé avec succès!");
