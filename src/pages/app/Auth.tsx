@@ -52,7 +52,7 @@ const Auth = () => {
 
     try {
       emailSchema.parse(email);
-      passwordSchema.parse(password);
+      (isLogin ? loginPasswordSchema : passwordSchema).parse(password);
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast.error(err.errors[0].message);
