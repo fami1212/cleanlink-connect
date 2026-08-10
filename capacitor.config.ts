@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.c2996149a3f349d0930c5034a5402f26',
+  appId: 'sn.linkeco.app',
   appName: "Link'eco",
   webDir: 'dist',
   // server: {
