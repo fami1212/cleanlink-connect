@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/linkeco-logo.png";
 
 const emailSchema = z.string().email("Email invalide");
+const loginPasswordSchema = z.string().min(1, "Mot de passe requis");
 const passwordSchema = z
   .string()
   .min(8, "Minimum 8 caractères")
