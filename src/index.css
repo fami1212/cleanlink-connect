@@ -213,7 +213,8 @@
     animation: aurora 6s linear infinite;
   }
 
-  .bg-gradient-linkeco {
+  .bg-gradient-linkeco,
+  .bg-gradient-emerald {
     background: var(--gradient-emerald);
   }
 
