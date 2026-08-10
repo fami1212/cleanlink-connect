@@ -175,10 +175,12 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
       {/* Premium emerald-prestige header */}
-      <div className="relative bg-gradient-hero-dark safe-area-top overflow-hidden noise">
-        <div className="absolute inset-0 bg-gradient-mesh opacity-60" />
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-12 w-72 h-72 bg-primary-glow/20 rounded-full blur-3xl" />
+      <div className="relative bg-gradient-hero-dark safe-area-top noise">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-mesh opacity-60" />
+          <div className="absolute -top-16 -right-16 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-12 w-72 h-72 bg-primary-glow/20 rounded-full blur-3xl" />
+        </div>
 
         <div className="relative px-5 pt-8 pb-20">
           <p className="text-[10px] uppercase tracking-[0.22em] text-accent font-semibold mb-4">Mon espace</p>

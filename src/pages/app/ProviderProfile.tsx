@@ -165,9 +165,11 @@ const ProviderProfile = () => {
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
       {/* Header */}
-      <div className="relative bg-gradient-to-br from-primary via-primary to-accent safe-area-top overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-accent/30 rounded-full blur-3xl" />
+      <div className="relative bg-gradient-to-br from-[hsl(var(--emerald-deep))] via-primary to-primary-glow safe-area-top">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-accent/25 rounded-full blur-3xl" />
+        </div>
 
         <div className="relative">
           <div className="flex items-center justify-between px-4 pt-3">

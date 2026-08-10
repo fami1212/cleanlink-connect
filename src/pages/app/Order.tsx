@@ -191,7 +191,12 @@ const Order = () => {
             </h1>
           </div>
         </div>
+        <div className="flex gap-1.5 px-4 pb-3" aria-hidden="true">
+          <span className="h-1 flex-1 rounded-full bg-gradient-emerald" />
+          <span className="h-1 flex-1 rounded-full bg-border" />
+        </div>
       </div>
+
 
       {/* Interactive Map */}
       <div className="relative">
