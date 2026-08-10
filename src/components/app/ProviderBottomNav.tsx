@@ -32,12 +32,15 @@ const ProviderBottomNav = () => {
                 aria-label={item.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200 active:scale-95",
+                  "group relative flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200 active:scale-95",
                   active
                     ? "text-primary-foreground"
-                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    : "text-muted-foreground hover:text-primary-foreground focus-visible:text-primary-foreground focus-visible:outline-none"
                 )}
               >
+                {!active && (
+                  <span className="absolute inset-0 rounded-xl bg-primary opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                )}
                 {active && (
                   <motion.div
                     layoutId="provider-nav-pill"
