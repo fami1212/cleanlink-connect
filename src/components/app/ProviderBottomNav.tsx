@@ -22,27 +22,31 @@ const ProviderBottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom pointer-events-none">
       <div className="px-3 pb-3 pt-2 flex justify-center pointer-events-auto">
-        <div className="glass-strong shadow-float rounded-2xl border border-foreground/5 flex items-center gap-1 p-1.5 w-full max-w-md">
+        <div className="bg-card/95 backdrop-blur-xl shadow-float rounded-2xl border border-border/60 flex items-center gap-1 p-1.5 w-full max-w-md">
           {navItems.map((item) => {
             const active = isActive(item.path);
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl transition-colors",
-                  active ? "text-primary-foreground" : "text-muted-foreground hover:text-accent hover:bg-accent/10"
+                  "relative flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200 active:scale-95",
+                  active
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                 )}
               >
                 {active && (
                   <motion.div
                     layoutId="provider-nav-pill"
                     className="absolute inset-0 bg-gradient-emerald rounded-xl shadow-green"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <item.icon className="relative w-5 h-5" strokeWidth={active ? 2.4 : 2} />
-                <span className="relative text-[10px] font-semibold">{item.label}</span>
+                <item.icon className="relative w-5 h-5" strokeWidth={active ? 2.5 : 2} />
+                <span className="relative text-[10px] font-semibold leading-none">{item.label}</span>
               </button>
             );
           })}

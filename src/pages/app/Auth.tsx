@@ -12,7 +12,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/linkeco-logo.png";
 
 const emailSchema = z.string().email("Email invalide");
-const passwordSchema = z.string().min(6, "Minimum 6 caractères");
+const loginPasswordSchema = z.string().min(1, "Mot de passe requis");
+const passwordSchema = z
+  .string()
+  .min(8, "Minimum 8 caractères")
+  .regex(/[A-Za-z]/, "Le mot de passe doit contenir une lettre")
+  .regex(/[0-9]/, "Le mot de passe doit contenir un chiffre");
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -48,7 +53,7 @@ const Auth = () => {
 
     try {
       emailSchema.parse(email);
-      passwordSchema.parse(password);
+      (isLogin ? loginPasswordSchema : passwordSchema).parse(password);
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast.error(err.errors[0].message);
@@ -73,7 +78,20 @@ const Auth = () => {
       }
       const { error } = await signUp(email, password, fullName);
       if (error) {
-        toast.error(error.message.includes("already registered") ? "Cet email est déjà utilisé" : "Erreur d'inscription");
+        const msg = error.message.toLowerCase();
+        let label = "Erreur d'inscription. Réessayez.";
+        if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("user already")) {
+          label = "Cet email est déjà utilisé";
+        } else if (msg.includes("weak") || msg.includes("pwned")) {
+          label = "Mot de passe trop courant. Choisissez-en un plus complexe (lettres, chiffres, symboles).";
+        } else if (msg.includes("password")) {
+          label = "Mot de passe invalide : minimum 8 caractères.";
+        } else if (msg.includes("email")) {
+          label = "Adresse email invalide ou non autorisée.";
+        } else if (msg.includes("rate") || msg.includes("limit")) {
+          label = "Trop de tentatives. Patientez quelques minutes.";
+        }
+        toast.error(label);
         setIsSubmitting(false);
       } else {
         toast.success("Compte créé avec succès!");
@@ -173,9 +191,15 @@ const Auth = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••"
+                    placeholder="••••••••"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
                     className="bg-white/5 border-white/10 text-background placeholder:text-background/30 h-12 rounded-xl focus-visible:border-accent focus-visible:ring-accent/20"
                   />
+                  {!isLogin && (
+                    <p className="text-[11px] text-background/50">
+                      8 caractères minimum, avec au moins une lettre et un chiffre. Évitez les mots de passe courants.
+                    </p>
+                  )}
                 </div>
 
                 <Button
