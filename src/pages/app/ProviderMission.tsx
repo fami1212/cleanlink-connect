@@ -347,6 +347,21 @@ const ProviderMission = () => {
             Informations client
           </h2>
           <div className="space-y-3">
+            {(clientContact?.full_name || clientContact?.phone) && (
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold shrink-0">
+                  {(clientContact.full_name || "C").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{clientContact.full_name || "Client"}</p>
+                  {clientContact.phone && (
+                    <a href={`tel:${clientContact.phone}`} className="text-sm text-primary hover:underline">
+                      {clientContact.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-primary mt-0.5" />
               <div>
