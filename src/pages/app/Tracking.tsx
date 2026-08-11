@@ -66,7 +66,18 @@ const Tracking = () => {
   const [showDispute, setShowDispute] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
+  const { getOrCreate } = useGetOrCreateConversation();
   const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean; delayed?: boolean }>({});
+
+  const openChat = async () => {
+    if (!order?.id || !order.provider_id) return;
+    setOpeningChat(true);
+    const convId = await getOrCreate(order.id, order.provider_id);
+    setOpeningChat(false);
+    if (convId) navigate(`/app/chat/${convId}`);
+    else toast.error("Impossible d'ouvrir la conversation");
+  };
 
   const initialEtaRef = useRef<number | null>(null);
   const lastEtaBucketRef = useRef<number | null>(null);
