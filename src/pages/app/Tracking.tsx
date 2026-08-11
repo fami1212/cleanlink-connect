@@ -100,14 +100,14 @@ const Tracking = () => {
         .from("providers")
         .select("user_id, company_name, rating, vehicle_type, latitude, longitude")
         .eq("id", order.provider_id)
-        .single();
+        .maybeSingle();
 
       if (provider) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name, phone, avatar_url")
           .eq("user_id", provider.user_id)
-          .single();
+          .maybeSingle();
 
         setProviderInfo({
           full_name: profile?.full_name || null,
