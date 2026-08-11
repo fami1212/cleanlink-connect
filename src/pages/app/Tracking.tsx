@@ -714,9 +714,9 @@ const Tracking = () => {
                 <Phone className="w-4 h-4 mr-2" />
                 Appeler
               </Button>
-              <Button variant="softBlue" className="flex-1" onClick={() => navigate("/app/conversations")}>
+              <Button variant="softBlue" className="flex-1" onClick={openChat} disabled={openingChat}>
                 <MessageSquare className="w-4 h-4 mr-2" />
-                Message
+                {openingChat ? "Ouverture…" : "Message"}
               </Button>
             </div>
           </div>
