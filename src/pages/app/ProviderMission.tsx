@@ -279,7 +279,8 @@ const ProviderMission = () => {
             size="sm"
             variant="secondary"
             className="shadow-lg"
-            onClick={() => window.open(`tel:+221000000000`, "_blank")}
+            disabled={!clientContact?.phone}
+            onClick={() => clientContact?.phone && window.open(`tel:${clientContact.phone}`, "_blank")}
           >
             <Phone className="w-4 h-4" />
           </Button>
