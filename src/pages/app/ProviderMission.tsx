@@ -407,10 +407,11 @@ const ProviderMission = () => {
         <Button
           variant="soft"
           className="w-full"
-          onClick={() => navigate("/app/conversations")}
+          disabled={openingChat}
+          onClick={openClientChat}
         >
           <MessageSquare className="w-4 h-4 mr-2" />
-          Ouvrir la messagerie client
+          {openingChat ? "Ouverture…" : "Ouvrir la messagerie client"}
         </Button>
       </div>
     </div>
