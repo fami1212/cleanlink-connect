@@ -228,7 +228,7 @@ export const useGetOrCreateConversation = () => {
       .from("conversations")
       .select("id")
       .eq("order_id", orderId)
-      .single();
+      .maybeSingle();
 
     if (existing) return existing.id;
 
