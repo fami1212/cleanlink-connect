@@ -12,6 +12,7 @@ import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeli
 import CancelOrderDialog from "@/components/app/CancelOrderDialog";
 import DisputeDialog from "@/components/app/DisputeDialog";
 import { getOrCreateInvoice, downloadInvoicePdf } from "@/lib/invoice";
+import { useGetOrCreateConversation } from "@/hooks/useMessages";
 
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
