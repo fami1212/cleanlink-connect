@@ -29,37 +29,20 @@ const Chat = () => {
     const fetchPartner = async () => {
       const { data: conv } = await supabase
         .from("conversations")
-        .select("client_id, provider_id")
+        .select("order_id")
         .eq("id", conversationId)
-        .single();
+        .maybeSingle();
 
-      if (!conv) return;
+      if (!conv?.order_id) return;
 
-      const isClient = conv.client_id === user.id;
-      let otherUserId: string | null = null;
-
-      if (isClient) {
-        const { data: provider } = await supabase
-          .from("providers")
-          .select("user_id")
-          .eq("id", conv.provider_id)
-          .single();
-        otherUserId = provider?.user_id || null;
-      } else {
-        otherUserId = conv.client_id;
-      }
-
-      if (otherUserId) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("user_id", otherUserId)
-          .single();
-        setOtherUser({
-          name: profile?.full_name || "Utilisateur",
-          avatar: profile?.avatar_url || undefined,
-        });
-      }
+      const { data: contact } = await (supabase as any).rpc("get_order_contact", {
+        _order_id: conv.order_id,
+      });
+      const c = Array.isArray(contact) ? contact[0] : contact;
+      setOtherUser({
+        name: c?.full_name || "Utilisateur",
+        avatar: c?.avatar_url || undefined,
+      });
     };
     fetchPartner();
   }, [conversationId, user]);
