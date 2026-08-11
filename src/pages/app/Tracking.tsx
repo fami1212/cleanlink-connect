@@ -12,6 +12,7 @@ import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeli
 import CancelOrderDialog from "@/components/app/CancelOrderDialog";
 import DisputeDialog from "@/components/app/DisputeDialog";
 import { getOrCreateInvoice, downloadInvoicePdf } from "@/lib/invoice";
+import { useGetOrCreateConversation } from "@/hooks/useMessages";
 
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
@@ -66,7 +67,18 @@ const Tracking = () => {
   const [showDispute, setShowDispute] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
+  const { getOrCreate } = useGetOrCreateConversation();
   const arrivalNotifiedRef = useRef<{ near?: boolean; arrived?: boolean; delayed?: boolean }>({});
+
+  const openChat = async () => {
+    if (!order?.id || !order.provider_id) return;
+    setOpeningChat(true);
+    const convId = await getOrCreate(order.id, order.provider_id);
+    setOpeningChat(false);
+    if (convId) navigate(`/app/chat/${convId}`);
+    else toast.error("Impossible d'ouvrir la conversation");
+  };
 
   const initialEtaRef = useRef<number | null>(null);
   const lastEtaBucketRef = useRef<number | null>(null);
@@ -100,19 +112,18 @@ const Tracking = () => {
         .from("providers")
         .select("user_id, company_name, rating, vehicle_type, latitude, longitude")
         .eq("id", order.provider_id)
-        .single();
+        .maybeSingle();
 
       if (provider) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, phone, avatar_url")
-          .eq("user_id", provider.user_id)
-          .single();
+        const { data: contact } = await (supabase as any).rpc("get_order_contact", {
+          _order_id: order.id,
+        });
+        const c = Array.isArray(contact) ? contact[0] : contact;
 
         setProviderInfo({
-          full_name: profile?.full_name || null,
-          phone: profile?.phone || null,
-          avatar_url: profile?.avatar_url || null,
+          full_name: c?.full_name || null,
+          phone: c?.phone || null,
+          avatar_url: c?.avatar_url || null,
           company_name: provider.company_name,
           rating: provider.rating,
           vehicle_type: provider.vehicle_type,
@@ -124,7 +135,7 @@ const Tracking = () => {
     };
 
     fetchProviderInfo();
-  }, [order?.provider_id]);
+  }, [order?.provider_id, order?.id]);
 
   // Realtime subscription on provider position
   useEffect(() => {
@@ -714,9 +725,9 @@ const Tracking = () => {
                 <Phone className="w-4 h-4 mr-2" />
                 Appeler
               </Button>
-              <Button variant="softBlue" className="flex-1" onClick={() => navigate("/app/conversations")}>
+              <Button variant="softBlue" className="flex-1" onClick={openChat} disabled={openingChat}>
                 <MessageSquare className="w-4 h-4 mr-2" />
-                Message
+                {openingChat ? "Ouverture…" : "Message"}
               </Button>
             </div>
           </div>

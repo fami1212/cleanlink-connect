@@ -9,6 +9,8 @@ import Map from "@/components/app/Map";
 import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
 import { toast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
+import { useGetOrCreateConversation } from "@/hooks/useMessages";
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
   const R = 6371;
@@ -30,9 +32,31 @@ const ProviderMission = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [clientContact, setClientContact] = useState<{ full_name: string | null; phone: string | null } | null>(null);
+  const [openingChat, setOpeningChat] = useState(false);
+  const { getOrCreate } = useGetOrCreateConversation();
   const lastEtaBucketRef = useRef<number | null>(null);
   const lastStatusRef = useRef<string | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
+
+  // Load client contact (secure, order-scoped)
+  useEffect(() => {
+    if (!activeOrder?.id) { setClientContact(null); return; }
+    (async () => {
+      const { data } = await (supabase as any).rpc("get_order_contact", { _order_id: activeOrder.id });
+      const c = Array.isArray(data) ? data[0] : data;
+      setClientContact({ full_name: c?.full_name ?? null, phone: c?.phone ?? null });
+    })();
+  }, [activeOrder?.id]);
+
+  const openClientChat = async () => {
+    if (!activeOrder?.id || !activeOrder.provider_id) return navigate("/app/conversations");
+    setOpeningChat(true);
+    const convId = await getOrCreate(activeOrder.id, activeOrder.provider_id);
+    setOpeningChat(false);
+    if (convId) navigate(`/app/chat/${convId}`);
+    else navigate("/app/conversations");
+  };
 
   const pushEvent = (ev: Omit<TimelineEvent, "id" | "at"> & { at?: Date }) => {
     setEvents((prev) => [
@@ -255,7 +279,8 @@ const ProviderMission = () => {
             size="sm"
             variant="secondary"
             className="shadow-lg"
-            onClick={() => window.open(`tel:+221000000000`, "_blank")}
+            disabled={!clientContact?.phone}
+            onClick={() => clientContact?.phone && window.open(`tel:${clientContact.phone}`, "_blank")}
           >
             <Phone className="w-4 h-4" />
           </Button>
@@ -322,6 +347,21 @@ const ProviderMission = () => {
             Informations client
           </h2>
           <div className="space-y-3">
+            {(clientContact?.full_name || clientContact?.phone) && (
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold shrink-0">
+                  {(clientContact.full_name || "C").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{clientContact.full_name || "Client"}</p>
+                  {clientContact.phone && (
+                    <a href={`tel:${clientContact.phone}`} className="text-sm text-primary hover:underline">
+                      {clientContact.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-primary mt-0.5" />
               <div>
@@ -367,10 +407,11 @@ const ProviderMission = () => {
         <Button
           variant="soft"
           className="w-full"
-          onClick={() => navigate("/app/conversations")}
+          disabled={openingChat}
+          onClick={openClientChat}
         >
           <MessageSquare className="w-4 h-4 mr-2" />
-          Ouvrir la messagerie client
+          {openingChat ? "Ouverture…" : "Ouvrir la messagerie client"}
         </Button>
       </div>
     </div>

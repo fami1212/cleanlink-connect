@@ -48,33 +48,16 @@ export const useConversations = () => {
     // Enrich with participant info and last message
     const enriched = await Promise.all(
       (data || []).map(async (conv: any) => {
-        // Determine if current user is client or provider
-        const isClient = conv.client_id === user.id;
-        let otherUserId: string | null = null;
-
-        if (isClient) {
-          // Get provider's user_id
-          const { data: provider } = await supabase
-            .from("providers")
-            .select("user_id")
-            .eq("id", conv.provider_id)
-            .single();
-          otherUserId = provider?.user_id || null;
-        } else {
-          otherUserId = conv.client_id;
-        }
-
-        // Get other user's profile
+        // Get other party's public contact info (secure, order-scoped)
         let otherName = "Utilisateur";
         let otherAvatar: string | undefined;
-        if (otherUserId) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, avatar_url")
-            .eq("user_id", otherUserId)
-            .single();
-          otherName = profile?.full_name || "Utilisateur";
-          otherAvatar = profile?.avatar_url || undefined;
+        if (conv.order_id) {
+          const { data: contact } = await (supabase as any).rpc("get_order_contact", {
+            _order_id: conv.order_id,
+          });
+          const c = Array.isArray(contact) ? contact[0] : contact;
+          otherName = c?.full_name || "Utilisateur";
+          otherAvatar = c?.avatar_url || undefined;
         }
 
         // Get last message
@@ -84,7 +67,7 @@ export const useConversations = () => {
           .eq("conversation_id", conv.id)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         // Get unread count
         const { count } = await supabase
@@ -228,7 +211,7 @@ export const useGetOrCreateConversation = () => {
       .from("conversations")
       .select("id")
       .eq("order_id", orderId)
-      .single();
+      .maybeSingle();
 
     if (existing) return existing.id;
 
