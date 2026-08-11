@@ -30,9 +30,31 @@ const ProviderMission = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [eta, setEta] = useState<{ minutes: number; distanceKm: number; source: "osrm" | "estimated" } | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [clientContact, setClientContact] = useState<{ full_name: string | null; phone: string | null } | null>(null);
+  const [openingChat, setOpeningChat] = useState(false);
+  const { getOrCreate } = useGetOrCreateConversation();
   const lastEtaBucketRef = useRef<number | null>(null);
   const lastStatusRef = useRef<string | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
+
+  // Load client contact (secure, order-scoped)
+  useEffect(() => {
+    if (!activeOrder?.id) { setClientContact(null); return; }
+    (async () => {
+      const { data } = await (supabase as any).rpc("get_order_contact", { _order_id: activeOrder.id });
+      const c = Array.isArray(data) ? data[0] : data;
+      setClientContact({ full_name: c?.full_name ?? null, phone: c?.phone ?? null });
+    })();
+  }, [activeOrder?.id]);
+
+  const openClientChat = async () => {
+    if (!activeOrder?.id || !activeOrder.provider_id) return navigate("/app/conversations");
+    setOpeningChat(true);
+    const convId = await getOrCreate(activeOrder.id, activeOrder.provider_id);
+    setOpeningChat(false);
+    if (convId) navigate(`/app/chat/${convId}`);
+    else navigate("/app/conversations");
+  };
 
   const pushEvent = (ev: Omit<TimelineEvent, "id" | "at"> & { at?: Date }) => {
     setEvents((prev) => [
