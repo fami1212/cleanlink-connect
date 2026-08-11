@@ -115,16 +115,15 @@ const Tracking = () => {
         .maybeSingle();
 
       if (provider) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, phone, avatar_url")
-          .eq("user_id", provider.user_id)
-          .maybeSingle();
+        const { data: contact } = await (supabase as any).rpc("get_order_contact", {
+          _order_id: order.id,
+        });
+        const c = Array.isArray(contact) ? contact[0] : contact;
 
         setProviderInfo({
-          full_name: profile?.full_name || null,
-          phone: profile?.phone || null,
-          avatar_url: profile?.avatar_url || null,
+          full_name: c?.full_name || null,
+          phone: c?.phone || null,
+          avatar_url: c?.avatar_url || null,
           company_name: provider.company_name,
           rating: provider.rating,
           vehicle_type: provider.vehicle_type,
@@ -136,7 +135,7 @@ const Tracking = () => {
     };
 
     fetchProviderInfo();
-  }, [order?.provider_id]);
+  }, [order?.provider_id, order?.id]);
 
   // Realtime subscription on provider position
   useEffect(() => {
