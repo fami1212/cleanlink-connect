@@ -550,6 +550,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_order_contact: {
+        Args: { _order_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          phone: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
