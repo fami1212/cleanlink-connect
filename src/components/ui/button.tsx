@@ -20,8 +20,8 @@ const buttonVariants = cva(
         heroOutline: "border-2 border-primary-foreground/80 text-primary-foreground bg-transparent hover:bg-primary-foreground/10 backdrop-blur-sm",
         gradient: "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md hover:shadow-lg hover:scale-[1.02]",
         gradientBlue: "bg-gradient-to-r from-secondary to-accent text-secondary-foreground shadow-md hover:shadow-lg hover:scale-[1.02]",
-        soft: "bg-primary/10 text-primary hover:bg-primary/20",
-        softBlue: "bg-secondary/10 text-secondary hover:bg-secondary/20",
+        soft: "bg-primary/12 text-primary hover:bg-primary/25 border border-primary/20",
+        softBlue: "bg-secondary text-secondary-foreground hover:bg-secondary/70 border border-secondary-foreground/15",
       },
       size: {
         default: "h-10 px-5 py-2",
