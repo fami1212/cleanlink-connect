@@ -9,6 +9,8 @@ import Map from "@/components/app/Map";
 import TrackingTimeline, { TimelineEvent } from "@/components/app/TrackingTimeline";
 import { toast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
+import { useGetOrCreateConversation } from "@/hooks/useMessages";
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
   const R = 6371;
