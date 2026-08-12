@@ -38,6 +38,7 @@ import AdminProviders from "./pages/app/admin/AdminProviders";
 import AdminReviews from "./pages/app/admin/AdminReviews";
 import AuthorityDashboard from "./pages/app/authority/AuthorityDashboard";
 import RoleGuard from "./components/app/RoleGuard";
+import AuthGuard from "./components/app/AuthGuard";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
@@ -96,13 +97,13 @@ const AppContent = () => {
         <Route path="/app/authority" element={<RoleGuard allow={["authority", "admin"]}><AuthorityDashboard /></RoleGuard>} />
 
         {/* Provider routes */}
-        <Route path="/app/provider" element={<ProviderDashboard />} />
-        <Route path="/app/provider/mission" element={<ProviderMission />} />
-        <Route path="/app/provider/register" element={<ProviderRegister />} />
-        <Route path="/app/provider/earnings" element={<ProviderEarnings />} />
-        <Route path="/app/provider/reviews" element={<ProviderReviews />} />
-        <Route path="/app/provider/profile" element={<ProviderProfile />} />
-        <Route path="/app/provider/documents" element={<ProviderDocuments />} />
+        <Route path="/app/provider" element={<AuthGuard><ProviderDashboard /></AuthGuard>} />
+        <Route path="/app/provider/mission" element={<AuthGuard><ProviderMission /></AuthGuard>} />
+        <Route path="/app/provider/register" element={<AuthGuard><ProviderRegister /></AuthGuard>} />
+        <Route path="/app/provider/earnings" element={<AuthGuard><ProviderEarnings /></AuthGuard>} />
+        <Route path="/app/provider/reviews" element={<AuthGuard><ProviderReviews /></AuthGuard>} />
+        <Route path="/app/provider/profile" element={<AuthGuard><ProviderProfile /></AuthGuard>} />
+        <Route path="/app/provider/documents" element={<AuthGuard><ProviderDocuments /></AuthGuard>} />
 
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
