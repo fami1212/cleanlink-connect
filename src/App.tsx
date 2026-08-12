@@ -38,6 +38,7 @@ import AdminProviders from "./pages/app/admin/AdminProviders";
 import AdminReviews from "./pages/app/admin/AdminReviews";
 import AuthorityDashboard from "./pages/app/authority/AuthorityDashboard";
 import RoleGuard from "./components/app/RoleGuard";
+import AuthGuard from "./components/app/AuthGuard";
 
 // Provider pages
 import ProviderDashboard from "./pages/app/ProviderDashboard";
