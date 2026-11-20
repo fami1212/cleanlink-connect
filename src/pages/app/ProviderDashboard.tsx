@@ -219,7 +219,7 @@ const ProviderDashboard = () => {
           )}
         </section>
       </main>
-      <ProviderBottomNav unreadMessages={unreadCount} />
+      <ProviderBottomNav />
     </div>
   );
 };
