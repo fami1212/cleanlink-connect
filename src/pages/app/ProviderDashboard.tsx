@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Star, TrendingUp, Wallet, Volume2, Check, Zap, Clock } from "lucide-react";
+import { ArrowUpRight, Check, Clock3, MapPin, Star, TrendingUp, Volume2, Wallet, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProvider } from "@/hooks/useProviders";
 import { useProviderOrders } from "@/hooks/useProviderOrders";
@@ -53,16 +54,16 @@ const ProviderDashboard = () => {
     if (online) { try { await getCurrentPosition(); } catch {} }
     const { error } = await updateProvider({ is_online: online });
     setIsUpdatingStatus(false);
-    if (error) { toast({ title: "Erreur", description: "Impossible de changer le statut", variant: "destructive" }); }
-    else { toast({ title: online ? "En ligne ✓" : "Hors ligne", description: online ? "Vous recevez des missions" : "Vous ne recevrez plus de missions" }); }
+    if (error) toast({ title: "Erreur", description: "Impossible de changer le statut", variant: "destructive" });
+    else toast({ title: online ? "En ligne" : "Hors ligne", description: online ? "Vous recevez des missions" : "Vous ne recevrez plus de missions" });
   };
 
   const handleAcceptMission = async (orderId: string) => {
     setIsAccepting(true);
     const { error } = await acceptOrder(orderId);
     setIsAccepting(false);
-    if (error) { toast({ title: "Erreur", description: "Impossible d'accepter la mission", variant: "destructive" }); }
-    else { toast({ title: "Mission acceptée! 🎉", description: "Rendez-vous chez le client" }); navigate("/app/provider/mission"); }
+    if (error) toast({ title: "Erreur", description: "Impossible d'accepter la mission", variant: "destructive" });
+    else { toast({ title: "Mission acceptée", description: "Rendez-vous chez le client" }); navigate("/app/provider/mission"); }
   };
 
   const handleRefuseMission = async (orderId: string) => {
@@ -82,144 +83,143 @@ const ProviderDashboard = () => {
   const initials = profile?.full_name?.split(" ").map((n) => n[0]).join("").toUpperCase() || user?.email?.[0]?.toUpperCase() || "P";
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header — glass */}
-      <div className="glass-strong safe-area-top border-b border-border/50 sticky top-0 z-30">
-        <div className="flex items-center justify-between p-4">
-          <img src={logo} alt="Link'eco" className="h-9" />
+    <div className="min-h-screen bg-background pb-28">
+      <header className="sticky top-0 z-30 border-b border-border/60 glass-strong safe-area-top">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
+          <div>
+            <img src={logo} alt="Link'eco" className="h-8" />
+            <p className="mt-1 text-xs text-muted-foreground">Espace prestataire</p>
+          </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => { initializeAudio(); toggleSound(); }}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${soundEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
-            >
-              <Volume2 className="w-4 h-4" />
-            </button>
+            <Button variant="ghost" size="icon" aria-label={soundEnabled ? "Désactiver le son" : "Activer le son"} onClick={() => { initializeAudio(); toggleSound(); }} className={soundEnabled ? "text-primary" : "text-muted-foreground"}>
+              <Volume2 />
+            </Button>
             <NotificationBell />
-            <button onClick={() => navigate("/app/provider/profile")} className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center overflow-hidden ring-2 ring-accent/20">
-              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-bold text-primary-foreground">{initials}</span>}
-            </button>
+            <Button variant="ghost" size="icon" aria-label="Mon profil prestataire" onClick={() => navigate("/app/provider/profile")} className="overflow-hidden rounded-full bg-primary text-primary-foreground">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <span className="text-xs font-bold">{initials}</span>}
+            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Online status */}
-      <div className="p-4">
-        <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
-          provider.is_online ? "bg-primary/5 border-primary/20" : "bg-muted/50 border-border"
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${provider.is_online ? "bg-primary" : "bg-muted-foreground"}`}>
-              {provider.is_online && <motion.div className="w-full h-full rounded-full bg-primary" animate={{ scale: [1, 1.4, 1], opacity: [1, 0.4, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />}
+      <main className="mx-auto max-w-2xl">
+        <section className="px-4 pt-6">
+          <p className="text-sm text-muted-foreground">Bonjour{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}</p>
+          <h1 className="mt-1 font-display text-2xl font-bold text-foreground">Votre activité</h1>
+        </section>
+
+        <section className="px-4 pt-5" aria-label="Disponibilité">
+          <div className={`flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors ${provider.is_online ? "border-primary/25 bg-primary/5" : "border-border bg-card"}`}>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className={`relative flex h-3 w-3 shrink-0 rounded-full ${provider.is_online ? "bg-primary" : "bg-muted-foreground"}`}>
+                {provider.is_online && <motion.span className="absolute inset-0 rounded-full bg-primary" animate={{ scale: [1, 1.8], opacity: [0.45, 0] }} transition={{ duration: 1.5, repeat: Infinity }} />}
+              </span>
+              <div className="min-w-0">
+                <p className="font-display text-sm font-semibold text-foreground">{provider.is_online ? "Disponible" : "Indisponible"}</p>
+                <p className="truncate text-xs text-muted-foreground">{provider.is_online ? "Les demandes arrivent ici" : "Activez pour recevoir des missions"}</p>
+              </div>
             </div>
+            <Switch checked={provider.is_online || false} onCheckedChange={handleToggleOnline} disabled={isUpdatingStatus} aria-label="Changer ma disponibilité" />
+          </div>
+        </section>
+
+        <section className="px-4 pt-5" aria-label="Résumé du jour">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-display text-sm font-semibold text-foreground">Aujourd’hui</h2>
+            <span className="text-xs text-muted-foreground">Votre activité récente</span>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
+            <div className="p-3 text-center">
+              <TrendingUp className="mx-auto mb-1.5 h-4 w-4 text-primary" />
+              <p className="font-display text-sm font-bold text-foreground">{stats.todayMissions}</p>
+              <p className="text-[11px] text-muted-foreground">Missions</p>
+            </div>
+            <button onClick={() => navigate("/app/provider/earnings")} className="p-3 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Wallet className="mx-auto mb-1.5 h-4 w-4 text-accent" />
+              <p className="truncate font-display text-sm font-bold text-foreground">{formatPrice(stats.todayEarnings).replace(" FCFA", " F")}</p>
+              <p className="text-[11px] text-muted-foreground">Gains</p>
+            </button>
+            <button onClick={() => navigate("/app/provider/reviews")} className="p-3 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Star className="mx-auto mb-1.5 h-4 w-4 text-accent" />
+              <p className="font-display text-sm font-bold text-foreground">{stats.averageRating > 0 ? stats.averageRating : "—"}</p>
+              <p className="text-[11px] text-muted-foreground">Note</p>
+            </button>
+          </div>
+        </section>
+
+        <AnimatePresence>
+          {activeOrder && (
+            <motion.section className="px-4 pt-5" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
+              <Button onClick={() => navigate("/app/provider/mission")} className="h-auto w-full justify-start rounded-xl bg-primary p-4 text-left text-primary-foreground shadow-green hover:bg-primary/90">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/10"><Zap className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-medium uppercase">Mission en cours</span>
+                  <span className="mt-0.5 block truncate font-display text-sm font-semibold">{activeOrder.status === "accepted" ? "En route vers le client" : "Intervention en cours"}</span>
+                </span>
+                <ArrowUpRight className="h-5 w-5 shrink-0" />
+              </Button>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        <section className="px-4 pt-7">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p className="font-display font-semibold text-foreground text-sm">{provider.is_online ? "En ligne" : "Hors ligne"}</p>
-              <p className="text-xs text-muted-foreground">{provider.is_online ? "Vous recevez des missions" : "Activez pour recevoir"}</p>
+              <h2 className="font-display text-lg font-bold text-foreground">Demandes de mission</h2>
+              <p className="text-xs text-muted-foreground">{pendingOrders.length ? `${pendingOrders.length} demande${pendingOrders.length > 1 ? "s" : ""} à examiner` : "Les nouvelles demandes apparaîtront ici"}</p>
             </div>
+            {pendingOrders.length > 0 && <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground">{pendingOrders.length}</span>}
           </div>
-          <Switch checked={provider.is_online || false} onCheckedChange={handleToggleOnline} disabled={isUpdatingStatus} />
-        </div>
-      </div>
 
-      {/* Stats */}
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-3 gap-2.5">
-          {[
-            { icon: TrendingUp, label: "Missions", value: String(stats.todayMissions), onClick: undefined },
-            { icon: Wallet, label: "Gains", value: formatPrice(stats.todayEarnings), onClick: () => navigate("/app/provider/earnings") },
-            { icon: Star, label: "Note", value: stats.averageRating > 0 ? String(stats.averageRating) : "-", onClick: () => navigate("/app/provider/reviews") },
-          ].map((stat) => (
-            <button
-              key={stat.label}
-              onClick={stat.onClick}
-              className="bg-card border border-border rounded-2xl p-3.5 text-center hover:shadow-card transition-shadow"
-            >
-              <stat.icon className="w-4 h-4 text-muted-foreground mx-auto mb-2" />
-              <p className="font-display font-bold text-foreground text-sm">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Active mission */}
-      <AnimatePresence>
-        {activeOrder && (
-          <motion.div className="px-4 pb-4" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-            <button onClick={() => navigate("/app/provider/mission")} className="w-full bg-primary rounded-2xl p-4 flex items-center gap-3 shadow-green">
-              <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+          {provider.is_online ? (
+            pendingOrders.length > 0 ? (
+              <div className="space-y-3">
+                {pendingOrders.slice(0, 3).map((order) => <MissionCard key={order.id} order={order} onAccept={() => handleAcceptMission(order.id)} onRefuse={() => handleRefuseMission(order.id)} isLoading={isAccepting} />)}
               </div>
-              <div className="flex-1 text-left">
-                <p className="font-semibold text-white text-sm">Mission en cours</p>
-                <p className="text-xs text-white/70 capitalize">{activeOrder.status === "accepted" ? "Acceptée" : "En route"}</p>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-card px-5 py-8 text-center">
+                <MapPin className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+                <p className="font-display text-sm font-semibold text-foreground">Aucune demande pour l’instant</p>
+                <p className="mt-1 text-xs text-muted-foreground">Vous recevrez une alerte dès qu’une mission est disponible.</p>
               </div>
-              <span className="text-white/70 text-sm font-medium">Voir →</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            )
+          ) : (
+            <div className="rounded-xl border border-border bg-muted/50 px-5 py-7 text-center">
+              <Clock3 className="mx-auto mb-3 h-7 w-7 text-muted-foreground" />
+              <p className="font-display text-sm font-semibold text-foreground">Vous êtes hors ligne</p>
+              <p className="mt-1 text-xs text-muted-foreground">Passez disponible pour recevoir des demandes.</p>
+            </div>
+          )}
+        </section>
 
-      {/* Available missions */}
-      <div className="px-4">
-        <h2 className="font-display text-base font-bold text-foreground mb-3">
-          {pendingOrders.length > 0 ? `Nouvelles missions (${pendingOrders.length})` : "Missions disponibles"}
-        </h2>
-
-        {provider.is_online ? (
-          pendingOrders.length > 0 ? (
-            <div className="space-y-3">
-              {pendingOrders.slice(0, 3).map((order) => (
-                <MissionCard key={order.id} order={order} onAccept={() => handleAcceptMission(order.id)} onRefuse={() => handleRefuseMission(order.id)} isLoading={isAccepting} />
-              ))}
+        <section className="px-4 pb-6 pt-7">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-base font-bold text-foreground">Missions terminées</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app/provider/earnings")} className="text-primary">Tout voir <ArrowUpRight className="ml-1 h-4 w-4" /></Button>
+          </div>
+          {completedOrders.length > 0 ? (
+            <div className="divide-y divide-border rounded-xl border border-border bg-card px-3">
+              {completedOrders.slice(0, 3).map((order) => {
+                const completedDate = order.completed_at ? new Date(order.completed_at) : null;
+                const dateLabel = completedDate?.toDateString() === new Date().toDateString() ? "Aujourd’hui" : completedDate?.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) || "";
+                return (
+                  <div key={order.id} className="flex items-center gap-3 py-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10"><Check className="h-4 w-4 text-primary" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-foreground">{serviceLabels[order.service_type] || order.service_type}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{order.address?.split(",")[0]} · {dateLabel}</span>
+                    </span>
+                    <span className="shrink-0 font-display text-xs font-bold text-primary">{formatPrice(order.final_price || 0)}</span>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-card border border-border rounded-2xl p-8 text-center">
-              <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-              <p className="font-display font-semibold text-foreground text-sm mb-1">Aucune mission</p>
-              <p className="text-xs text-muted-foreground">Restez en ligne pour en recevoir</p>
-            </div>
-          )
-        ) : (
-          <div className="bg-muted/50 border border-dashed border-border rounded-2xl p-8 text-center">
-            <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <p className="font-display font-semibold text-foreground text-sm mb-1">Hors ligne</p>
-            <p className="text-xs text-muted-foreground">Activez pour recevoir des missions</p>
-          </div>
-        )}
-      </div>
-
-      {/* Recent */}
-      <div className="px-4 py-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-base font-bold text-foreground">Récentes</h2>
-          <button onClick={() => navigate("/app/provider/earnings")} className="text-xs text-primary font-medium">Voir tout</button>
-        </div>
-
-        {completedOrders.length > 0 ? (
-          <div className="space-y-2">
-            {completedOrders.slice(0, 3).map((order) => {
-              const d = order.completed_at ? new Date(order.completed_at) : null;
-              const label = d?.toDateString() === new Date().toDateString() ? "Aujourd'hui" : d?.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) || "";
-              return (
-                <div key={order.id} className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
-                  <div className="w-9 h-9 bg-primary/8 rounded-lg flex items-center justify-center"><Check className="w-4 h-4 text-primary" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{serviceLabels[order.service_type] || order.service_type}</p>
-                    <p className="text-xs text-muted-foreground truncate">{order.address?.split(",")[0]} • {label}</p>
-                  </div>
-                  <span className="font-display font-bold text-primary text-xs">{formatPrice(order.final_price || 0)}</span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-card border border-border rounded-xl p-5 text-center">
-            <p className="text-xs text-muted-foreground">Pas de missions récentes</p>
-          </div>
-        )}
-      </div>
-
-      <ProviderBottomNav />
+            <div className="rounded-xl border border-border bg-card px-4 py-5 text-center text-xs text-muted-foreground">Vos missions terminées s’afficheront ici.</div>
+          )}
+        </section>
+      </main>
+      <ProviderBottomNav unreadMessages={unreadCount} />
     </div>
   );
 };
